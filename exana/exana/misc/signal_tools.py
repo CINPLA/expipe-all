@@ -388,7 +388,7 @@ def duplicate_bad_channels(anas, bad_channels, probefile, copy_signal=True):
 
     return anas_dup
 
-def save_binary_format(filename, signal, spikesorter='klusta'):
+def save_binary_format(filename, signal, spikesorter='klusta', dtype='float32'):
     """Saves analog signals into klusta (time x chan) or spyking
     circus (chan x time) binary format (.dat)
 
@@ -400,6 +400,8 @@ def save_binary_format(filename, signal, spikesorter='klusta'):
              2d array of analog signals
     spikesorter : string
                   'klusta' or 'spykingcircus'
+    dtype : str, np.dtype
+        data type for file, typically 'float32' (default), 'int16', np.int16 etc
 
     Returns
     -------
@@ -408,12 +410,12 @@ def save_binary_format(filename, signal, spikesorter='klusta'):
         fdat = filename + '_klusta.dat'
         print('Saving ', fdat)
         with open(fdat, 'wb') as f:
-            np.transpose(np.array(signal, dtype='float32')).tofile(f)
+            np.transpose(np.array(signal, dtype=dtype)).tofile(f)
     elif spikesorter is 'spykingcircus':
         fdat = filename + '_spycircus.dat'
         print('Saving ', fdat)
         with open(fdat, 'wb') as f:
-            np.array(signal, dtype='float32').tofile(f)
+            np.array(signal, dtype=dtype).tofile(f)
 
 
 def create_klusta_prm(pathname, prb_path, nchan=32, fs=30000,
