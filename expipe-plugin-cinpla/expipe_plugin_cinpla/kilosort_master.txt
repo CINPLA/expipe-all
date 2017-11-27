@@ -1,0 +1,27 @@
+% flag for GPU (must have CUDA installed)
+useGPU = 0;
+
+% data folder path
+fpath    = '{}';
+
+% kilosort path (add them permanently in MATLAB by adding in ~/Documents/MATLAB/startup.m)
+% addpath(genpath('~/Repositories/KiloSort')) % path to kilosort folder
+% addpath(genpath('~/Repositories/npy-matlab')) % path to npy-matlab scripts
+
+% config path
+cpath = '{}';
+
+% create channel map file
+run(fullfile(cpath, 'kilosort_channelmap.m'));
+
+% Run the configuration file, it builds the structure of options (ops)
+run(fullfile(cpath, 'kilosort_config.m'))
+
+% This part runs the normal Kilosort processing on the simulated data
+[rez, DATA, uproj] = preprocessData(ops); % preprocess data and extract spikes for initialization
+rez                = fitTemplates(rez, DATA, uproj);  % fit templates iteratively
+rez                = fullMPMU(rez, DATA);% extract final spike times (overlapping extraction)
+
+% save python results file for Phy
+rezToPhy(rez, fpath);
+

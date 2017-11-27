@@ -110,6 +110,10 @@ def attach_to_cli(cli):
                   is_flag=True,
                   help='Preprocess data.',
                   )
+    @click.option('--kilosort',
+                  is_flag=True,
+                  default=False,
+                  help='Preprocess flag for kilosort spikesorting software. Ignores --no-preprocess and klusta related flags. Default is False')
     @click.option('--shutter-channel',
                   type=click.INT,
                   default=0,
@@ -124,7 +128,8 @@ def attach_to_cli(cli):
                           common_ref, ground,
                           split_probe, no_local, openephys_path,
                           exdir_path, no_klusta, shutter_channel,
-                          no_preprocess, no_spikes, no_lfp, no_tracking):
+                          no_preprocess, no_spikes, no_lfp, no_tracking,
+                          kilosort):
         settings = config.load_settings()['current']
         if not no_klusta:
             import klusta
@@ -206,6 +211,82 @@ def attach_to_cli(cli):
                 }
                 action.require_module(name='preprocessing', contents=prepro,
                                       overwrite=True)
+        
+        ########################################################################
+        if kilosort:
+            anas = openephys_file.analog_signals[0].signal
+            fs = openephys_file.sample_rate.magnitude
+            nchan = anas.shape[0]
+            anas = sig_tools.filter_analog_signals(anas, freq=[filter_low, filter_high],
+                                         fs=fs, filter_type='bandpass',
+                                         order=filter_order, filter_function=filter_function)
+            if len(ground) != 0:
+                ground = [int(g) for g in ground]
+                anas = sig_tools.ground_bad_channels(anas, ground)
+            if split_probe is not None:
+                split_chans = np.arange(nchan)
+                if split_probe != nchan / 2:
+                    warnings.warn('The split probe is not dividing the number' +
+                                  ' of channels in two')
+                print('Splitting probe in channels \n"' +
+                      str(split_chans[:split_probe]) + '"\nand\n"' +
+                      str(split_chans[split_probe:]) + '"')
+            if common_ref == 'car':
+                anas, _ = sig_tools.apply_CAR(anas, car_type='mean',
+                                    split_probe=split_probe)
+            elif common_ref == 'cmr':
+                anas, _ = sig_tools.apply_CAR(anas, car_type='median',
+                                    split_probe=split_probe)
+            if len(ground) != 0:
+                duplicate = [int(g) for g in ground]
+                anas = sig_tools.duplicate_bad_channels(anas, duplicate, prb_path)
+            # save file as int16 in openephys native magnitude
+            sig_tools.save_binary_format(openephys_base,
+                                         np.array(anas/0.195).astype('int16'),
+                                         spikesorter=None,
+                                         dtype='int16')
+            if action is not None:
+                prepro = {
+                    'common_ref': common_ref,
+                    'filter': {
+                        'pre_filter': pre_filter,
+                        'klusta_filter': klusta_filter,
+                        'filter_low': filter_low,
+                        'filter_high': filter_high,
+                    },
+                    'grounded_channels': ground,
+                    'probe_split': (str(split_chans[:split_probe]) +
+                                    str(split_chans[split_probe:]))
+                }
+                action.require_module(name='preprocessing', contents=prepro,
+                                      overwrite=True)
+            
+            # set up kilosort config files and run kilosort on data
+            with open(os.path.join(os.path.split(__file__)[0], 'kilosort_master.txt'), 'r') as f:
+                kilosort_master = f.readlines()
+            with open(os.path.join(os.path.split(__file__)[0], 'kilosort_config.txt'), 'r') as f:
+                kilosort_config = f.readlines()
+            with open(os.path.join(os.path.split(__file__)[0], 'kilosort_channelmap.txt'), 'r') as f:
+                kilosort_channelmap = f.readlines()
+
+            kilosort_master = ''.join(kilosort_master).format(
+                openephys_path, openephys_path
+            )
+            kilosort_config = ''.join(kilosort_config).format(
+                nchan, nchan, fs, openephys_session, 
+            )
+            kilosort_channelmap = ''.join(kilosort_channelmap).format(nchan, fs)
+            for fname, value in zip(['kilosort_master.m', 'kilosort_config.m', 'kilosort_channelmap.m'],
+                                    [kilosort_master, kilosort_config, kilosort_channelmap]):
+                with open(os.path.join(openephys_path, fname), 'w') as f:
+                    f.writelines(value)
+            
+            # start sorting with kilosort
+            cwd = os.getcwd()
+            os.chdir(openephys_path)
+            subprocess.call(['matlab', '-nodisplay', '-nodesktop', '-r', 'run kilosort_master.m; exit;'])
+            os.chdir(cwd)
+        ########################################################################
 
         if not no_klusta:
             print('Running klusta')

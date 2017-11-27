@@ -395,11 +395,12 @@ def save_binary_format(filename, signal, spikesorter='klusta', dtype='float32'):
     Parameters
     ----------
     filename : string
-               absolute path (_klusta.dat or _spycircus.dat are appended)
+               absolute path. Appends _klusta.dat or _spycircus.dat dependent on
+               value of spikesorter arg.
     signal : np.array
              2d array of analog signals
     spikesorter : string
-                  'klusta' or 'spykingcircus'
+                  'klusta' or 'spykingcircus' or None
     dtype : str, np.dtype
         data type for file, typically 'float32' (default), 'int16', np.int16 etc
 
@@ -416,6 +417,13 @@ def save_binary_format(filename, signal, spikesorter='klusta', dtype='float32'):
         print('Saving ', fdat)
         with open(fdat, 'wb') as f:
             np.array(signal, dtype=dtype).tofile(f)
+    elif spikesorter is None:
+        if not filename.endswith('dat'):
+            filename += '.dat'
+        print('saving ', filename)
+        with open(filename, 'wb') as f:
+            np.transpose(np.array(signal, dtype=dtype)).tofile(f)
+        
 
 
 def create_klusta_prm(pathname, prb_path, nchan=32, fs=30000,
