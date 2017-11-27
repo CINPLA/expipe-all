@@ -113,7 +113,11 @@ def attach_to_cli(cli):
     @click.option('--kilosort',
                   is_flag=True,
                   default=False,
-                  help='Preprocess flag for kilosort spikesorting software. Ignores --no-preprocess and klusta related flags. Default is False')
+                  help='Preprocess flag for KiloSort spikesorting software. Ignores --no-preprocess and klusta related options. Default is False')
+    @click.option('--kilosort-spikes',
+                  is_flag=True,
+                  default=False,
+                  help='Write KiloSort spike times if this or --kilosort option is used. Ignores --no-preprocess and klusta related options. Default is False')
     @click.option('--shutter-channel',
                   type=click.INT,
                   default=0,
@@ -129,7 +133,7 @@ def attach_to_cli(cli):
                           split_probe, no_local, openephys_path,
                           exdir_path, no_klusta, shutter_channel,
                           no_preprocess, no_spikes, no_lfp, no_tracking,
-                          kilosort):
+                          kilosort, kilosort_spikes):
         settings = config.load_settings()['current']
         if not no_klusta:
             import klusta
@@ -211,7 +215,7 @@ def attach_to_cli(cli):
                 }
                 action.require_module(name='preprocessing', contents=prepro,
                                       overwrite=True)
-        
+
         ########################################################################
         if kilosort:
             anas = openephys_file.analog_signals[0].signal
@@ -240,7 +244,7 @@ def attach_to_cli(cli):
             if len(ground) != 0:
                 duplicate = [int(g) for g in ground]
                 anas = sig_tools.duplicate_bad_channels(anas, duplicate, prb_path)
-            # save file as int16 in openephys native magnitude
+            # save file as int16 in openephys native unit
             sig_tools.save_binary_format(openephys_base,
                                          np.array(anas/0.195).astype('int16'),
                                          spikesorter=None,
@@ -260,7 +264,7 @@ def attach_to_cli(cli):
                 }
                 action.require_module(name='preprocessing', contents=prepro,
                                       overwrite=True)
-            
+
             # set up kilosort config files and run kilosort on data
             with open(os.path.join(os.path.split(__file__)[0], 'kilosort_master.txt'), 'r') as f:
                 kilosort_master = f.readlines()
@@ -273,14 +277,14 @@ def attach_to_cli(cli):
                 openephys_path, openephys_path
             )
             kilosort_config = ''.join(kilosort_config).format(
-                nchan, nchan, fs, openephys_session, 
+                nchan, nchan, fs, openephys_session,
             )
             kilosort_channelmap = ''.join(kilosort_channelmap).format(nchan, fs)
             for fname, value in zip(['kilosort_master.m', 'kilosort_config.m', 'kilosort_channelmap.m'],
                                     [kilosort_master, kilosort_config, kilosort_channelmap]):
                 with open(os.path.join(openephys_path, fname), 'w') as f:
                     f.writelines(value)
-            
+
             # start sorting with kilosort
             cwd = os.getcwd()
             os.chdir(openephys_path)
@@ -299,6 +303,10 @@ def attach_to_cli(cli):
             openephys.generate_spike_trains(exdir_path, openephys_file,
                                             source='klusta')
             print('Processed spiketrains, manual clustering possible')
+        if kilosort_spikes | kilosort:
+            print('konverting from KiloSort output')
+            openephys.generate_spike_trains(exdir_path, openephys_file,
+                                            source='kilosort')
         if not no_lfp:
             print('Filtering and downsampling raw data to LFP.')
             openephys.generate_lfp(exdir_path, openephys_file)

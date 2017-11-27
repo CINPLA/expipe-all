@@ -146,6 +146,46 @@ def generate_spike_trains(exdir_path, openephys_file, source='klusta'):
                 chx.units.append(unit)
             exdirio.write_channelindex(chx, start_time=0 * pq.s,
                                        stop_time=openephys_file.duration)
+    elif source == 'kilosort':
+        print('Generating spike trains from KiloSort')
+        exdirio = neo.io.ExdirIO(exdir_path)
+        exdir_file = exdir.File(exdir_path)
+        openephys_directory = op.join(str(exdir_file["acquisition"].directory),
+                                      exdir_file["acquisition"].attrs["openephys_session"])
+        # iterate over channel groups. As there are no channel associated with
+        # any spiking unit (TO BE IMPLEMENTED), everything is written to
+        # channel_group 0
+        for oe_group in openephys_file.channel_groups:
+            channel_ids = [ch.id for ch in oe_group.channels]
+            channel_index = [ch.index for ch in oe_group.channels]
+            chx = neo.ChannelIndex(
+                name='channel group {}'.format(oe_group.id),
+                channel_ids=channel_ids,
+                index=channel_index,
+                group_id=oe_group.id
+            )
+            # load output
+            spt = np.load(op.join(openephys_directory, 'spike_times.npy')).flatten()
+            spc = np.load(op.join(openephys_directory, 'spike_clusters.npy')).flatten()
+            cgroup = np.loadtxt(op.join(openephys_directory, 'cluster_group.tsv'),
+                                      dtype=[('cluster_id', 'i4'), ('group', 'S8')],
+                                      skiprows=1)
+            for id, grp in cgroup:
+                unit = neo.Unit(
+                    cluster_group = str(grp),
+                    cluster_id = id,
+                    name = id
+                )
+                unit.spiketrains.append(
+                    neo.SpikeTrain(
+                        times = (spt[spc==id].astype(float) / openephys_file.sample_rate).simplified,
+                        t_stop = openephys_file.duration,
+                    )
+                )
+                chx.units.append(unit)
+            exdirio.write_channelindex(chx, start_time=0 * pq.s,
+                                       stop_time=openephys_file.duration)
+            break
     else:
         raise ValueError(source + ' not supported')
 
