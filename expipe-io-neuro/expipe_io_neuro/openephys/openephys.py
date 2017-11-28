@@ -165,11 +165,20 @@ def generate_spike_trains(exdir_path, openephys_file, source='klusta'):
                 group_id=oe_group.id
             )
             # load output
-            spt = np.load(op.join(openephys_directory, 'spike_times.npy')).flatten()
-            spc = np.load(op.join(openephys_directory, 'spike_clusters.npy')).flatten()
-            cgroup = np.loadtxt(op.join(openephys_directory, 'cluster_group.tsv'),
-                                      dtype=[('cluster_id', 'i4'), ('group', 'S8')],
-                                      skiprows=1)
+            spt = np.load(op.join(openephys_directory,
+                                  'spike_times.npy')).flatten()
+            spc = np.load(op.join(openephys_directory,
+                                  'spike_clusters.npy')).flatten()
+            try:
+                cgroup = np.loadtxt(op.join(openephys_directory,
+                                            'cluster_group.tsv'),
+                                          dtype=[('cluster_id', 'i4'), ('group', 'U8')],
+                                          skiprows=1)
+            except FileNotFoundError:
+                # manual corrections didn't happen; 
+                cgroup = np.array(list(zip(np.unique(spc),
+                                           ['unsorted']*np.unique(spc).size)),
+                                  dtype=[('cluster_id', 'i4'), ('group', 'U8')])
             for id, grp in cgroup:
                 unit = neo.Unit(
                     cluster_group = str(grp),

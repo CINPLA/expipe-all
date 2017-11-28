@@ -1,12 +1,14 @@
 %  create a channel map file
 
 Nchannels = {}; % number of channels
+split_probe = {}; % number of channels per group
 connected = true(Nchannels, 1);
 chanMap   = 1:Nchannels;
 chanMap0ind = chanMap - 1;
-xcoords   = [-ones(Nchannels/2,1) ones(Nchannels/2,1)]*100;
-ycoords   = [1:Nchannels/2 1:Nchannels/2]*50;
-kcoords   = ones(Nchannels,1); % grouping of channels (i.e. tetrode groups)
+[xcoords, ycoords] = meshgrid(1:split_probe, 1:Nchannels/split_probe);
+xcoords = reshape(xcoords.', 1, [])*50;
+ycoords = reshape(ycoords.', 1, [])*50;
+kcoords   = ones(split_probe, Nchannels/split_probe); % grouping of channels (i.e. tetrode groups)
 
 fs = {}; % sampling frequency
 save(fullfile(fpath, 'chanMap.mat'), ...

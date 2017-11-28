@@ -279,7 +279,7 @@ def attach_to_cli(cli):
             kilosort_config = ''.join(kilosort_config).format(
                 nchan, nchan, fs, openephys_session,
             )
-            kilosort_channelmap = ''.join(kilosort_channelmap).format(nchan, fs)
+            kilosort_channelmap = ''.join(kilosort_channelmap).format(nchan, split_probe, fs)
             for fname, value in zip(['kilosort_master.m', 'kilosort_config.m', 'kilosort_channelmap.m'],
                                     [kilosort_master, kilosort_config, kilosort_channelmap]):
                 with open(os.path.join(openephys_path, fname), 'w') as f:
