@@ -181,7 +181,7 @@ def attach_to_cli(cli):
                 sig_tools.save_binary_format(openephys_base, anas,
                                              spikesorter=spikesorter,
                                              dtype='float32')
-            elif spikesorter == 'kilosort':
+            elif spikesorter == 'kilosort' or spikesorter == 'none':
                 sig_tools.save_binary_format(openephys_base,
                                              np.array(anas/0.195).astype('int16'),
                                              spikesorter=spikesorter,
