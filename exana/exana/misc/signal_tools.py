@@ -395,29 +395,29 @@ def save_binary_format(filename, signal, spikesorter='klusta', dtype='float32'):
     Parameters
     ----------
     filename : string
-               absolute path. Appends _klusta.dat or _spycircus.dat dependent on
-               value of spikesorter arg.
+        absolute path. Appends _klusta.dat or _spycircus.dat dependent on
+        value of spikesorter arg.
     signal : np.array
-             2d array of analog signals
+        2d array of analog signals
     spikesorter : string
-                  'klusta' or 'spykingcircus' or None
+        'klusta' or 'spykingcircus' or 'kilosort' or 'none'
     dtype : str, np.dtype
         data type for file, typically 'float32' (default), 'int16', np.int16 etc
 
     Returns
     -------
     """
-    if spikesorter is 'klusta':
+    if spikesorter == 'klusta':
         fdat = filename + '_klusta.dat'
         print('Saving ', fdat)
         with open(fdat, 'wb') as f:
             np.transpose(np.array(signal, dtype=dtype)).tofile(f)
-    elif spikesorter is 'spykingcircus':
+    elif spikesorter == 'spykingcircus':
         fdat = filename + '_spycircus.dat'
         print('Saving ', fdat)
         with open(fdat, 'wb') as f:
             np.array(signal, dtype=dtype).tofile(f)
-    elif spikesorter is None:
+    elif spikesorter == 'kilosort' or spikesorter == 'none':
         if not filename.endswith('dat'):
             filename += '.dat'
         print('saving ', filename)

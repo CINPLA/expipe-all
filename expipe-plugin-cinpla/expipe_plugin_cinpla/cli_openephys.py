@@ -34,18 +34,42 @@ def attach_to_cli(cli):
                   type=click.STRING,
                   help='Path to desired exdir directory, if none it is deduced from action id.',
                   )
-    @click.option('--klusta-filter',
-                  is_flag=True,
-                  help='Let klusta filter or not. Default = False',
+    
+    @click.option('--preprocess',
+                  type=click.BOOL,
+                  default=True,
+                  help='Preprocess data (apply filters, split probe, subtract mean/median) before spikesorting. Default is True')
+    @click.option('--spikesorter',
+                  type=click.Choice(['klusta', 'kilosort', 'none']),
+                  default='klusta',
+                  help='Chooses and invokes spikesorting software among [klusta, kilosort, none]. Default is klusta. Option none disables spikesorting altogether')
+    @click.option('--threshold',
+                  type=click.FLOAT,
+                  default=4.,
+                  help='Spikesorter-specific detection threshold. For spikesorter klusta, this corresponds to the strong detection threshold.')
+    @click.option('--klusta-use-single-threshold',
+                  type=click.Choice(['True', 'False']),
+                  default='True',
+                  help='Use the same threshold across channels with klusta. Default is True')
+    @click.option('--klusta-threshold-weak-std-factor',
+                  type=click.FLOAT,
+                  default=2,
+                  help='Weak spike detection threshold with klusta. Default is 2',
                   )
-    @click.option('--pre-filter',
-                  is_flag=True,
-                  help='Pre filter or not, replaces klusta filter. Default = True',
+    @click.option('--convert-spikes',
+                  type=click.Choice(['klusta', 'kilosort', 'none']),
+                  default='klusta',
+                  help='Enable conversion of spikes to exdir from [expipe, kilosort]. Default is expipe. Choice none ignores convertion')
+    @click.option('--filter-method',
+                  type=click.Choice(['expipe', 'klusta', 'none']),
+                  default='expipe',
+                  help='Implementation used to pre-filter data, in [expipe, klusta, none]. Default is expipe, choice "none" disables filtering',
                   )
+    
     @click.option('--filter-low',
                   type=click.INT,
-                  default=300,
-                  help='Low cut off frequencey. Default is 300 Hz',
+                  default=500,
+                  help='Low cut off frequencey. Default is 500 Hz',
                   )
     @click.option('--filter-high',
                   type=click.INT,
@@ -60,20 +84,6 @@ def attach_to_cli(cli):
                   type=click.Choice(['filtfilt', 'lfilter']),
                   default='filtfilt',
                   help='Filter function. The default "filtfilt" corresponds to a forward-backward filter operation, "lfilter" a forward filter. NOTE: does not affect filtering with klusta.')
-    @click.option('--use-single-threshold',
-                  type=click.Choice(['True', 'False']),
-                  default='True',
-                  help='Use the same threshold across channels. Default is True')
-    @click.option('--threshold-strong-std-factor',
-                  type=click.FLOAT,
-                  default=4.5,
-                  help='Strong spike detection threshold. Default is 4.5',
-                  )
-    @click.option('--threshold-weak-std-factor',
-                  type=click.FLOAT,
-                  default=2,
-                  help='Weak spike detection threshold. Default is 2',
-                  )
     @click.option('--common-ref',
                   type=click.Choice(['car', 'cmr', 'none']),
                   default='cmr',
@@ -86,14 +96,6 @@ def attach_to_cli(cli):
     @click.option('--ground', '-g',
                   multiple=True,
                   help='Ground selected channels')
-    @click.option('--no-klusta',
-                  is_flag=True,
-                  help='Not run klusta on dataset.',
-                  )
-    @click.option('--no-spikes',
-                  is_flag=True,
-                  help='Disable convertion of spikes to exdir.',
-                  )
     @click.option('--no-lfp',
                   is_flag=True,
                   help='Disable convertion of LFP to exdir.',
@@ -105,39 +107,26 @@ def attach_to_cli(cli):
     @click.option('--no-local',
                   is_flag=True,
                   help='Store temporary on local drive.',
-                  )
-    @click.option('--no-preprocess',
-                  is_flag=True,
-                  help='Preprocess data.',
-                  )
-    @click.option('--kilosort',
-                  is_flag=True,
-                  default=False,
-                  help='Preprocess flag for KiloSort spikesorting software. Ignores --no-preprocess and klusta related options. Default is False')
-    @click.option('--kilosort-spikes',
-                  is_flag=True,
-                  default=False,
-                  help='Write KiloSort spike times if this or --kilosort option is used. Ignores --no-preprocess and klusta related options. Default is False')
+                  )   
     @click.option('--shutter-channel',
                   type=click.INT,
                   default=0,
                   help='TTL channel for shutter events to sync tracking',
                   )
-    def process_openephys(action_id, prb_path, pre_filter,
-                          klusta_filter, filter_low, filter_high,
+    def process_openephys(action_id, prb_path,
+                          preprocess, spikesorter, convert_spikes, filter_method, # NEW 
+                          filter_low, filter_high,
                           filter_order, filter_function,
-                          use_single_threshold,
-                          threshold_strong_std_factor,
-                          threshold_weak_std_factor,
+                          threshold,
+                          klusta_threshold_weak_std_factor,
+                          klusta_use_single_threshold,
                           common_ref, ground,
                           split_probe, no_local, openephys_path,
-                          exdir_path, no_klusta, shutter_channel,
-                          no_preprocess, no_spikes, no_lfp, no_tracking,
-                          kilosort, kilosort_spikes):
+                          exdir_path,
+                          shutter_channel,
+                          no_lfp, no_tracking,
+                          ):
         settings = config.load_settings()['current']
-        if not no_klusta:
-            import klusta
-            import klustakwik2
         action = None
         if exdir_path is None:
             project = expipe.get_project(PAR.USER_PARAMS['project_id'])
@@ -156,26 +145,15 @@ def attach_to_cli(cli):
             openephys_session = acquisition.attrs["openephys_session"]
             openephys_path = os.path.join(str(acquisition.directory), openephys_session)
             openephys_base = os.path.join(openephys_path, openephys_session)
-            klusta_prm = os.path.abspath(openephys_base) + '.prm'
             prb_path = prb_path or settings.get('probe')
             openephys_file = pyopenephys.File(openephys_path, prb_path)
-        if not no_preprocess:
-            if not pre_filter and not klusta_filter:
-                pre_filter = True
-            elif pre_filter and klusta_filter:
-                raise IOError('Choose either klusta-filter or pre-filter.')
+
+        # SHARED PREPROCESSING STEPS PRIOR TO SPIKESORTING
+        if preprocess:
             anas = openephys_file.analog_signals[0].signal
             fs = openephys_file.sample_rate.magnitude
             nchan = anas.shape[0]
-            sig_tools.create_klusta_prm(openephys_base, prb_path, nchan,
-                              fs=fs, klusta_filter=klusta_filter,
-                              filter_low=filter_low,
-                              filter_high=filter_high,
-                              filter_order=filter_order,
-                              use_single_threshold=use_single_threshold,
-                              threshold_strong_std_factor=threshold_strong_std_factor,
-                              threshold_weak_std_factor=threshold_weak_std_factor)
-            if pre_filter:
+            if filter_method == 'expipe':
                 anas = sig_tools.filter_analog_signals(anas, freq=[filter_low, filter_high],
                                              fs=fs, filter_type='bandpass',
                                              order=filter_order, filter_function=filter_function)
@@ -198,14 +176,30 @@ def attach_to_cli(cli):
                                     split_probe=split_probe)
             if len(ground) != 0:
                 duplicate = [int(g) for g in ground]
-                anas = sig_tools.duplicate_bad_channels(anas, duplicate, prb_path)
-            sig_tools.save_binary_format(openephys_base, anas)
+                anas = sig_tools.duplicate_bad_channels(anas, duplicate, prb_path)        
+            if spikesorter == 'klusta':
+                sig_tools.save_binary_format(openephys_base, anas,
+                                             spikesorter=spikesorter,
+                                             dtype='float32')
+            elif spikesorter == 'kilosort':
+                sig_tools.save_binary_format(openephys_base,
+                                             np.array(anas/0.195).astype('int16'),
+                                             spikesorter=spikesorter,
+                                             dtype='int16')
+            del anas # clean namespace
+        # SPIKESORT DATA
+        if spikesorter == 'klusta':
+            try:
+                assert(convert_spikes == 'klusta')
+            except AssertionError:
+                convert_spikes = 'kilosort'
+                print('Warning: Setting --convert-spikes="klusta"')
             if action is not None:
                 prepro = {
                     'common_ref': common_ref,
                     'filter': {
-                        'pre_filter': pre_filter,
-                        'klusta_filter': klusta_filter,
+                        'pre_filter': True if filter_method == 'expipe' else False,
+                        'klusta_filter': True if filter_method == 'klusta' else False,
                         'filter_low': filter_low,
                         'filter_high': filter_high,
                     },
@@ -215,46 +209,38 @@ def attach_to_cli(cli):
                 }
                 action.require_module(name='preprocessing', contents=prepro,
                                       overwrite=True)
-
-        ########################################################################
-        if kilosort:
+            nchan = openephys_file.analog_signals[0].signal.shape[0]
+            sig_tools.create_klusta_prm(openephys_base, prb_path, nchan,
+                              fs=fs,
+                              klusta_filter=True if filter_method == 'klusta' else False,
+                              filter_low=filter_low,
+                              filter_high=filter_high,
+                              filter_order=filter_order,
+                              use_single_threshold=klusta_use_single_threshold,
+                              threshold_strong_std_factor=threshold,
+                              threshold_weak_std_factor=klusta_threshold_weak_std_factor)
+            print('Running klusta')
+            try:
+                klusta_prm = os.path.abspath(openephys_base) + '.prm'            
+                subprocess.check_output(['klusta', klusta_prm, '--overwrite'])
+            except subprocess.CalledProcessError as e:
+                raise Exception(e.output)
+            
+        elif spikesorter == 'kilosort':
+            try:
+                assert(convert_spikes == 'kilosort')
+            except AssertionError:
+                convert_spikes = 'kilosort'
+                print('Warning: Setting --convert-spikes="kilosort"')
             anas = openephys_file.analog_signals[0].signal
             fs = openephys_file.sample_rate.magnitude
             nchan = anas.shape[0]
-            anas = sig_tools.filter_analog_signals(anas, freq=[filter_low, filter_high],
-                                         fs=fs, filter_type='bandpass',
-                                         order=filter_order, filter_function=filter_function)
-            if len(ground) != 0:
-                ground = [int(g) for g in ground]
-                anas = sig_tools.ground_bad_channels(anas, ground)
-            if split_probe is not None:
-                split_chans = np.arange(nchan)
-                if split_probe != nchan / 2:
-                    warnings.warn('The split probe is not dividing the number' +
-                                  ' of channels in two')
-                print('Splitting probe in channels \n"' +
-                      str(split_chans[:split_probe]) + '"\nand\n"' +
-                      str(split_chans[split_probe:]) + '"')
-            if common_ref == 'car':
-                anas, _ = sig_tools.apply_CAR(anas, car_type='mean',
-                                    split_probe=split_probe)
-            elif common_ref == 'cmr':
-                anas, _ = sig_tools.apply_CAR(anas, car_type='median',
-                                    split_probe=split_probe)
-            if len(ground) != 0:
-                duplicate = [int(g) for g in ground]
-                anas = sig_tools.duplicate_bad_channels(anas, duplicate, prb_path)
-            # save file as int16 in openephys native unit
-            sig_tools.save_binary_format(openephys_base,
-                                         np.array(anas/0.195).astype('int16'),
-                                         spikesorter=None,
-                                         dtype='int16')
             if action is not None:
                 prepro = {
                     'common_ref': common_ref,
                     'filter': {
-                        'pre_filter': pre_filter,
-                        'klusta_filter': klusta_filter,
+                        'pre_filter': True if filter_method == 'expipe' else False,
+                        'klusta_filter': False,
                         'filter_low': filter_low,
                         'filter_high': filter_high,
                     },
@@ -264,53 +250,62 @@ def attach_to_cli(cli):
                 }
                 action.require_module(name='preprocessing', contents=prepro,
                                       overwrite=True)
-
             # set up kilosort config files and run kilosort on data
-            with open(os.path.join(os.path.split(__file__)[0], 'kilosort_master.txt'), 'r') as f:
+            with open(os.path.join(os.path.split(__file__)[0],
+                                   'kilosort_master.txt'), 'r') as f:
                 kilosort_master = f.readlines()
-            with open(os.path.join(os.path.split(__file__)[0], 'kilosort_config.txt'), 'r') as f:
+            with open(os.path.join(os.path.split(__file__)[0],
+                                   'kilosort_config.txt'), 'r') as f:
                 kilosort_config = f.readlines()
-            with open(os.path.join(os.path.split(__file__)[0], 'kilosort_channelmap.txt'), 'r') as f:
+            with open(os.path.join(os.path.split(__file__)[0],
+                                   'kilosort_channelmap.txt'), 'r') as f:
                 kilosort_channelmap = f.readlines()
 
             kilosort_master = ''.join(kilosort_master).format(
                 openephys_path, openephys_path
             )
             kilosort_config = ''.join(kilosort_config).format(
-                nchan, nchan, fs, openephys_session,
+                nchan, nchan, fs, openephys_session, threshold,
             )
-            kilosort_channelmap = ''.join(kilosort_channelmap).format(nchan, split_probe, fs)
-            for fname, value in zip(['kilosort_master.m', 'kilosort_config.m', 'kilosort_channelmap.m'],
-                                    [kilosort_master, kilosort_config, kilosort_channelmap]):
+            kilosort_channelmap = ''.join(kilosort_channelmap
+                                          ).format(nchan, split_probe, fs)
+            for fname, value in zip(['kilosort_master.m', 'kilosort_config.m',
+                                     'kilosort_channelmap.m'],
+                                    [kilosort_master, kilosort_config,
+                                     kilosort_channelmap]):
                 with open(os.path.join(openephys_path, fname), 'w') as f:
                     f.writelines(value)
-
             # start sorting with kilosort
             cwd = os.getcwd()
             os.chdir(openephys_path)
-            subprocess.call(['matlab', '-nodisplay', '-nodesktop', '-r', 'run kilosort_master.m; exit;'])
-            os.chdir(cwd)
-        ########################################################################
-
-        if not no_klusta:
-            print('Running klusta')
+            print('running KiloSort')
             try:
-                subprocess.check_output(['klusta', klusta_prm, '--overwrite'])
+                subprocess.call(['matlab', '-nodisplay', '-nodesktop', '-r',
+                                 'run kilosort_master.m; exit;'])
             except subprocess.CalledProcessError as e:
-                raise Exception(e.output)
-        if not no_spikes:
-            print('Converting from ".kwik" to ".exdir"')
+                raise Exception(e.output)            
+            os.chdir(cwd)
+        
+        elif spikesorter == 'none':
+            print('Skipping spikesorting.')
+        else:
+            raise NotImplementedError('spikesorter {} not implemented'.format(spikesorter))
+        
+        # CONVERT SPIKES TO EXDIR FORMAT
+        if convert_spikes in ['klusta', 'kilosort']:
+            if convert_spikes == 'klusta':
+                print('Converting from ".kwik" to ".exdir"')
+            elif convert_spikes == 'kilosort':                 
+                print('konverting from KiloSort output to ".exdir"')
             openephys.generate_spike_trains(exdir_path, openephys_file,
-                                            source='klusta')
+                                            source=convert_spikes)
             print('Processed spiketrains, manual clustering possible')
-        if kilosort_spikes | kilosort:
-            print('konverting from KiloSort output')
-            openephys.generate_spike_trains(exdir_path, openephys_file,
-                                            source='kilosort')
+
         if not no_lfp:
             print('Filtering and downsampling raw data to LFP.')
             openephys.generate_lfp(exdir_path, openephys_file)
             print('Finished processing LFPs.')
+
         if not no_tracking:
             print('Converting tracking from OpenEphys raw data to ".exdir"')
             openephys.generate_tracking(exdir_path, openephys_file)
