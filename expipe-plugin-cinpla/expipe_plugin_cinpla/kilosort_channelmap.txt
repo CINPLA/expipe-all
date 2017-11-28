@@ -8,7 +8,10 @@ chanMap0ind = chanMap - 1;
 [xcoords, ycoords] = meshgrid(1:split_probe, 1:Nchannels/split_probe);
 xcoords = reshape(xcoords.', 1, [])*50;
 ycoords = reshape(ycoords.', 1, [])*50;
-kcoords   = ones(split_probe, Nchannels/split_probe); % grouping of channels (i.e. tetrode groups)
+kcoords   = zeros(Nchannels, Nchannels/split_probe); % grouping of channels (i.e. tetrode groups)
+for i = 1:Nchannels/split_probe
+    kcoords(split_probe*(i-1)+1:split_probe*i, i) = 1;
+end
 
 fs = {}; % sampling frequency
 save(fullfile(fpath, 'chanMap.mat'), ...

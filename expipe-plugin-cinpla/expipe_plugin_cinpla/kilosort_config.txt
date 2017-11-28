@@ -6,7 +6,7 @@ ops.showfigures         = 0; % whether to plot figures during optimization
 
 ops.NchanTOT            = {};           % total number of channels (omit if already in chanMap file)
 ops.Nchan               = {};           % number of active channels (omit if already in chanMap file)
-ops.fs                  = {};
+ops.fs                  = {};           % sampling rate
 
 ops.datatype            = 'dat';  % binary ('dat', 'bin') or 'openEphys'		
 ops.fbinary             = fullfile(fpath, '{}.dat'); % will be created for 'openEphys'		

@@ -67,13 +67,13 @@ def attach_to_cli(cli):
                   )
     
     @click.option('--filter-low',
-                  type=click.INT,
-                  default=500,
+                  type=click.FLOAT,
+                  default=500.,
                   help='Low cut off frequencey. Default is 500 Hz',
                   )
     @click.option('--filter-high',
-                  type=click.INT,
-                  default=6000,
+                  type=click.FLOAT,
+                  default=6000.,
                   help='High cut off frequencey. Default is 6000 Hz',
                   )
     @click.option('--filter-order',
