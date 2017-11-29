@@ -5,7 +5,7 @@
 ;
 [subrepo]
 	remote = git@github.com:CINPLA/exdir.git
-	branch = dev
+	branch = cinpla
 	commit = 5c58c2fbf37d301056d766738b675d0be0a94c3f
 	parent = e3dc135605c72e2e80b54e9b9079919f84a0777c
 	cmdver = 0.3.1

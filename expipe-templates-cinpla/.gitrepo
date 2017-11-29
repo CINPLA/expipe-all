@@ -7,5 +7,5 @@
 	remote = https://github.com/CINPLA/expipe-templates-cinpla.git
 	branch = master
 	commit = 3364b62c78b2aee1f1af3c691a7db0b40d82c38b
-	parent = 0b8b0dfb3e2fb9ada2b4dd880b2ec2ac524f090e
+	parent = 7f11b86ce7c17b3636d4695bf5ace67992915168
 	cmdver = 0.3.1

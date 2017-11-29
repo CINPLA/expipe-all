@@ -7,5 +7,5 @@
 	remote = git@github.com:CINPLA/expipe-browser.git
 	branch = dev
 	commit = 56ab655c5ab2e285bb54b08f5636004ad9ee558d
-	parent = 25dcc9d091c18c45f09d0acb1253deee53a4e6ba
+	parent = f03f1485143a8b2acaae90b7ac0f4cb840d6111e
 	cmdver = 0.3.1

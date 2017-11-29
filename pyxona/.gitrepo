@@ -6,6 +6,6 @@
 [subrepo]
 	remote = git@github.com:CINPLA/pyxona.git
 	branch = dev
-	commit = e81120668e453b134c650b0fe4b1fd5dc4b0a02f
-	parent = 793ca85aaf73e31b15d781ec10d5ce60c50c5844
+	commit = 32274ed022480a40a4d71ce7b73b23fb9a7920f4
+	parent = d226ad5242f21e7cc00ddbc765017588abdd29e0
 	cmdver = 0.3.1
