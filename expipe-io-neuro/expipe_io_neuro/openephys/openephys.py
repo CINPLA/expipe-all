@@ -174,6 +174,8 @@ def generate_spike_trains(exdir_path, openephys_file, source='klusta'):
                                             'cluster_group.tsv'),
                                           dtype=[('cluster_id', 'i4'), ('group', 'U8')],
                                           skiprows=1)
+                if cgroup.shape == (0, ):
+                    raise FileNotFoundError
             except FileNotFoundError:
                 # manual corrections didn't happen; 
                 cgroup = np.array(list(zip(np.unique(spc),

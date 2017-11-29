@@ -317,6 +317,10 @@ def attach_to_cli(cli):
                 else:
                     warnings.warn('No TTL events found on IO channel {}'.format(
                         shutter_channel))
+        
+        trackball = False
+        if trackball: # manymouse tracking info
+            pass
 
 
     @cli.command('register',
