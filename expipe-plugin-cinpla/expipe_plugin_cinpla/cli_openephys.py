@@ -101,10 +101,14 @@ def attach_to_cli(cli):
                   is_flag=True,
                   help='Disable convertion of LFP to exdir.',
                   )
-    @click.option('--no-tracking',
-                  is_flag=True,
-                  help='Disable registering of tracking data to exdir.',
-                  )
+    @click.option('--tracking',
+                  type=click.Choice(['openephys', 'trackball', 'none']),
+                  default='openephys',
+                  help='convert tracking information. Default option is openephys, option none disables conversion')
+    # @click.option('--no-tracking',
+    #               is_flag=True,
+    #               help='Disable registering of tracking data to exdir.',
+    #               )
     @click.option('--no-local',
                   is_flag=True,
                   help='Store temporary on local drive.',
@@ -125,7 +129,8 @@ def attach_to_cli(cli):
                           split_probe, no_local, openephys_path,
                           exdir_path,
                           shutter_channel,
-                          no_lfp, no_tracking,
+                          no_lfp,
+                          tracking,
                           ):
         settings = config.load_settings()['current']
         action = None
@@ -307,66 +312,64 @@ def attach_to_cli(cli):
             openephys.generate_lfp(exdir_path, openephys_file)
             print('Finished processing LFPs.')
 
-        if not no_tracking:
-            print('Converting tracking from OpenEphys raw data to ".exdir"')
-            openephys.generate_tracking(exdir_path, openephys_file)
-            if shutter_channel is not None:
-                ttl_times = openephys_file.digital_in_signals[0].times[
-                    shutter_channel]
-                if len(ttl_times) != 0:
-                    openephys_file.sync_tracking_from_events(ttl_times)
-                else:
-                    warnings.warn('No TTL events found on IO channel {}'.format(
-                        shutter_channel))
-        
-        trackball = True
-        if trackball: # manymouse tracking info
-            def get_trackballdata(pth):
-                trackfiles = glob(os.path.join(pth, '*.mousexy'))
-                if len(trackfiles) == 0:
-                    raise Exception('Found no .mousexy file in folder {}'.format(pth))
-                if len(trackfiles) > 1:
-                    raise Exception('Found more than one .mousexy file in folder {}'.format(trackfiles))
-                jsonl = [] # container
-                for track in trackfiles:
-                    with open(track, 'r') as f:
-                        for line in f.readlines():
-                            line = line.replace("'", '"')
-                            try:
-                                jsonl.append(json.loads(line))
-                            except json.JSONDecodeError:
-                                pass # skip lines with non-json output
-                    # convert to structured array
-                    dtype = [('id', 'U8'), ('motion', 'U8'), ('time', '<f4'),
-                        ('direction', 'U8'), ('value', '<i4')]
-                    trackballdata = []
-                    for j in jsonl:
-                        for key, val in j.items():
-                            l = [key] + [val['motion'], val['t'], 'X' if 'X' in list(val.keys()) else 'Y', val['X' if 'X' in list(val.keys()) else 'Y']]
-                            trackballdata.append(tuple(l))
-                    return np.array(trackballdata, dtype=dtype)
-                
-            trackballdata = get_trackballdata(pth=openephys_path)
-            
-            _, _, processing, _ = openephys._prepare_exdir_file(exdir_file)
-            tracking = processing.require_group('tracking')
-            trackball = tracking.require_group('trackball')
-            position = trackball.require_group("position")
-            position.attrs['start_time'] = 0 * pq.s
-            position.attrs['stop_time'] = openephys_file.duration
-            for id in np.unique(trackballdata['id']):
-                iinds = trackballdata['id'] == id
-                data = trackballdata[iinds]
-                for axis in 'XY':
-                    led = position.require_group(id.replace('#', 'USB') + '_{}'.format(axis))
-                    led.attrs['start_time'] = 0 * pq.s
-                    led.attrs['stop_time'] = openephys_file.duration                    
-                    inds = data['direction'] == axis
-                    dset = led.require_dataset('data', data=data['value'][inds].cumsum()*pq.dimensionless)
-                    dset.attrs['num_samples'] = inds.sum()
-                    dset = led.require_dataset('times', data=data['time'][inds]*pq.s)
-                    dset.attrs['num_samples'] = inds.sum()        
-        
+        if tracking in ['openephys', 'trackball']:
+            if tracking == 'openephys':
+                print('Converting tracking from OpenEphys raw data to ".exdir"')
+                openephys.generate_tracking(exdir_path, openephys_file)
+                if shutter_channel is not None:
+                    ttl_times = openephys_file.digital_in_signals[0].times[
+                        shutter_channel]
+                    if len(ttl_times) != 0:
+                        openephys_file.sync_tracking_from_events(ttl_times)
+                    else:
+                        warnings.warn('No TTL events found on IO channel {}'.format(
+                            shutter_channel))
+            elif tracking == 'trackball':        
+                def get_trackballdata(pth):
+                    trackfiles = glob(os.path.join(pth, '*.mousexy'))
+                    if len(trackfiles) == 0:
+                        raise Exception('Found no .mousexy file in folder {}'.format(pth))
+                    if len(trackfiles) > 1:
+                        raise Exception('Found more than one .mousexy file in folder {}'.format(trackfiles))
+                    jsonl = [] # container
+                    for track in trackfiles:
+                        with open(track, 'r') as f:
+                            for line in f.readlines():
+                                line = line.replace("'", '"')
+                                try:
+                                    jsonl.append(json.loads(line))
+                                except json.JSONDecodeError:
+                                    pass # skip lines with non-json output
+                        # convert to structured array
+                        dtype = [('id', 'U8'), ('motion', 'U8'), ('time', '<f4'),
+                            ('direction', 'U8'), ('value', '<i4')]
+                        trackballdata = []
+                        for j in jsonl:
+                            for key, val in j.items():
+                                l = [key] + [val['motion'], val['t'], 'X' if 'X' in list(val.keys()) else 'Y', val['X' if 'X' in list(val.keys()) else 'Y']]
+                                trackballdata.append(tuple(l))
+                        return np.array(trackballdata, dtype=dtype)
+                def generate_tracking(openephys_path, openephys_file, exdir_file):
+                    trackballdata = get_trackballdata(pth=openephys_path)
+                    _, _, processing, _ = openephys._prepare_exdir_file(exdir_file)
+                    tracking_ = processing.require_group('tracking')
+                    trackball = tracking_.require_group('trackball')
+                    position = trackball.require_group("position")
+                    position.attrs['start_time'] = 0 * pq.s
+                    position.attrs['stop_time'] = openephys_file.duration
+                    for id in np.unique(trackballdata['id']):
+                        iinds = trackballdata['id'] == id
+                        data = trackballdata[iinds]
+                        for axis in 'XY':
+                            led = position.require_group(id.replace('#', 'USB') + '_{}'.format(axis))
+                            led.attrs['start_time'] = 0 * pq.s
+                            led.attrs['stop_time'] = openephys_file.duration                    
+                            inds = data['direction'] == axis
+                            dset = led.require_dataset('data', data=data['value'][inds].cumsum()*pq.dimensionless)
+                            dset.attrs['num_samples'] = inds.sum()
+                            dset = led.require_dataset('times', data=data['time'][inds]*pq.s)
+                            dset.attrs['num_samples'] = inds.sum()        
+                generate_tracking(openephys_path, openephys_file, exdir_file)
 
 
     @cli.command('register',
