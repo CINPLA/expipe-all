@@ -104,11 +104,15 @@ def attach_to_cli(cli):
     @click.option('--tracking',
                   type=click.Choice(['openephys', 'trackball', 'none']),
                   default='openephys',
-                  help='convert tracking information. Default option is openephys, option none disables conversion')
-    # @click.option('--no-tracking',
-    #               is_flag=True,
-    #               help='Disable registering of tracking data to exdir.',
-    #               )
+                  help='convert tracking information. Default option is "openephys", option "none" disables conversion')
+    @click.option('--trackball-time-offset',
+                  type=click.FLOAT,
+                  default=-10.,
+                  help='time before first TTL event the manymouse start to gather trackball motion. Default is -10 in units of seconds')
+    @click.option('--visual',
+                  type=click.Choice(['psychopy', 'none']),
+                  default='none',
+                  help='convert visual stimulation information. Default option is "none", option "psychopy" processes .jsonl files.')
     @click.option('--no-local',
                   is_flag=True,
                   help='Store temporary on local drive.',
@@ -131,6 +135,8 @@ def attach_to_cli(cli):
                           shutter_channel,
                           no_lfp,
                           tracking,
+                          trackball_time_offset,
+                          visual,
                           ):
         settings = config.load_settings()['current']
         action = None
@@ -324,7 +330,7 @@ def attach_to_cli(cli):
                     else:
                         warnings.warn('No TTL events found on IO channel {}'.format(
                             shutter_channel))
-            elif tracking == 'trackball':        
+            elif tracking == 'trackball':
                 def get_trackballdata(pth):
                     trackfiles = glob(os.path.join(pth, '*.mousexy'))
                     if len(trackfiles) == 0:
@@ -349,8 +355,9 @@ def attach_to_cli(cli):
                                 l = [key] + [val['motion'], val['t'], 'X' if 'X' in list(val.keys()) else 'Y', val['X' if 'X' in list(val.keys()) else 'Y']]
                                 trackballdata.append(tuple(l))
                         return np.array(trackballdata, dtype=dtype)
-                def generate_tracking(openephys_path, openephys_file, exdir_file):
+                def generate_tracking(openephys_path, openephys_file, exdir_file, ttl_time=0.*pq.s):
                     trackballdata = get_trackballdata(pth=openephys_path)
+                    trackballdata['time'] += ttl_time # correct time stamps
                     _, _, processing, _ = openephys._prepare_exdir_file(exdir_file)
                     tracking_ = processing.require_group('tracking')
                     trackball = tracking_.require_group('trackball')
@@ -367,10 +374,86 @@ def attach_to_cli(cli):
                             inds = data['direction'] == axis
                             dset = led.require_dataset('data', data=data['value'][inds].cumsum()*pq.dimensionless)
                             dset.attrs['num_samples'] = inds.sum()
-                            dset = led.require_dataset('times', data=data['time'][inds]*pq.s)
-                            dset.attrs['num_samples'] = inds.sum()        
-                generate_tracking(openephys_path, openephys_file, exdir_file)
+                            dset = led.require_dataset('times', data=data['time'][inds]*pq.s)   # TODO: GRAB P-PORT EVENT - 10 s as mouse recording is always 10 s before the first visual stimulus
+                            dset.attrs['num_samples'] = inds.sum()
 
+
+                if shutter_channel is not None:
+                    ttl_times = openephys_file.digital_in_signals[0].times[shutter_channel]
+                    if len(ttl_times) != 0:
+                        ttl_time = ttl_times[0] + trackball_time_offset*pq.s
+                    else:
+                        warnings.warn('No TTL events found on IO channel {}'.format(
+                            shutter_channel))
+                        ttl_time = trackball_time_offset*pq.s
+                generate_tracking(openephys_path, openephys_file, exdir_file, ttl_time)
+
+
+        if visual == 'psychopy':
+            stimfiles = glob(os.path.join(openephys_path, '*.jsonl'))
+            if len(stimfiles) == 0:
+                raise Exception('Found no .jsonl file in folder {}'.format(openephys_path))
+            if len(stimfiles) > 1:
+                raise Exception('Found more than one .jsonl file in folder {}'.format(stimfiles))
+            jsonl = [] # container
+            for stimf in stimfiles:
+                with open(stimf, 'r') as f:
+                    for line in f.readlines():
+                        line = line.replace("'", '"')
+                        try:
+                            jsonl.append(json.loads(line))
+                        except json.JSONDecodeError:
+                            pass # skip lines with non-json output
+            _, _, processing, _ = openephys._prepare_exdir_file(exdir_file)
+            ephocs = processing.require_group('epochs')
+            visual = ephocs.require_group('visual_stimulus')
+            keys = []
+            values = []
+            for stim in jsonl:
+                for key, value in stim.items():
+                    keys.append(key)
+                    values.append(value)
+            keys = np.array(keys)
+            values = np.array(values)
+            ttl_times = openephys_file.digital_in_signals[0].times[shutter_channel]
+            try:
+                assert(len(keys) == ttl_times.size)
+            except AssertionError:
+                raise Exception('number of shutter-channel events ({}) do not match number of visual stimuli ({})'.format(ttl_times.size, len(keys)))
+            for key in np.unique(keys):
+                stim = visual.require_group(key)
+                stim.attrs['start_time'] = 0 * pq.s
+                stim.attrs['stop_time'] = openephys_file.duration
+                dset = stim.require_dataset('times', data=ttl_times[keys == key])
+                dset.attrs['num_samples'] = (keys == key).sum()
+                for i, attrs in enumerate(np.array(jsonl)[keys == key]):
+                    g = stim.require_group(str(i))
+                    for k, v in attrs[key].items():
+                        g.attrs[k] = v
+            
+            # keys = ["image", "sparsenoise", "grating", "sparsenoise", "movie"]
+            # valuekeys = ["duration", "image", "phase", "spatial_frequency", "frequency", "orientation", "movie"]
+            # {"image": {"duration": 0.25, "image": "..\\datasets\\converted_images\\image0004.png"}}
+            # {"sparsenoise": {"duration": 0.25, "image": "..\\datasets\\sparse_noise_images\\image0022.png"}}
+            # {"grating": {"duration": 0.25, "phase": 0.5, "spatial_frequency": 0.16, "frequency": 0, "orientation": 120}}
+            # {"movie": {"movie": "..\\datasets\\converted_movies\\segment1.mp4"}}
+            # {"grating": {"phase": "f*t", "duration": 2.0, "spatial_frequency": 0.04, "frequency": 4, "orientation": 225}}
+
+
+            # exdir_file = exdir.File(exdir_path)
+            # epochs = exdir_file.require_group("epochs")
+            # stim_epoch = epochs.require_group("visual_stimulus")
+            # stim_epoch.attrs["type"] = "visual_stimulus"
+            # times = stim_epoch.require_dataset('timestamps', data=timestamps)
+            # times.attrs['num_samples'] = len(timestamps)
+            # durations = stim_epoch.require_dataset('durations', data=durations)
+            # durations.attrs['num_samples'] = len(durations)
+            # data = stim_epoch.require_dataset('data', data=data)
+            # data.attrs['num_samples'] = len(data)
+            
+            
+            # EpochArray(times=array([], dtype=float64) * s, durations=array([], dtype=float64) * s, labels=array([],
+            # dtype='|S1'), name=None, description=None, file_origin=None, **annotations)
 
     @cli.command('register',
                  short_help='Generate an open-ephys recording-action to database.')
