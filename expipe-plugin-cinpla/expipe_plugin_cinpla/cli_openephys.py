@@ -3,6 +3,8 @@ from .imports import *
 from . import config
 from datetime import timedelta
 from glob import glob
+import pandas
+                
 
 
 
@@ -408,28 +410,31 @@ def attach_to_cli(cli):
             ephocs = processing.require_group('epochs')
             visual = ephocs.require_group('visual_stimulus')
             keys = []
-            values = []
             for stim in jsonl:
-                for key, value in stim.items():
-                    keys.append(key)
-                    values.append(value)
+                keys += list(stim.keys())
+                # for key in stim.keys():
+                #     keys.append(key)
             keys = np.array(keys)
-            values = np.array(values)
             ttl_times = openephys_file.digital_in_signals[0].times[shutter_channel]
             try:
-                assert(len(keys) == ttl_times.size)
+                assert(keys.size == ttl_times.size)
             except AssertionError:
-                raise Exception('number of shutter-channel events ({}) do not match number of visual stimuli ({})'.format(ttl_times.size, len(keys)))
+                raise Exception('number of shutter-channel events ({}) do not match number of visual stimuli ({})'.format(ttl_times.size, keys.size))
             for key in np.unique(keys):
                 stim = visual.require_group(key)
                 stim.attrs['start_time'] = 0 * pq.s
                 stim.attrs['stop_time'] = openephys_file.duration
+                num_samples = (keys == key).sum()
                 dset = stim.require_dataset('times', data=ttl_times[keys == key])
-                dset.attrs['num_samples'] = (keys == key).sum()
-                for i, attrs in enumerate(np.array(jsonl)[keys == key]):
-                    g = stim.require_group(str(i))
-                    for k, v in attrs[key].items():
-                        g.attrs[k] = v
+                dset.attrs['num_samples'] = num_samples
+                df = pandas.DataFrame([v[key] for v in np.array(jsonl)[keys == key]])
+                for k in df.keys():
+                    if df[k].values.dtype == 'object':
+                        # recast as string array
+                        dset = stim.require_dataset(k, data=df[k].values.astype(str))
+                    else:
+                        dset = stim.require_dataset(k, data=df[k].values)
+                    dset.attrs['num_samples'] = num_samples
             
             # keys = ["image", "sparsenoise", "grating", "sparsenoise", "movie"]
             # valuekeys = ["duration", "image", "phase", "spatial_frequency", "frequency", "orientation", "movie"]
@@ -439,21 +444,6 @@ def attach_to_cli(cli):
             # {"movie": {"movie": "..\\datasets\\converted_movies\\segment1.mp4"}}
             # {"grating": {"phase": "f*t", "duration": 2.0, "spatial_frequency": 0.04, "frequency": 4, "orientation": 225}}
 
-
-            # exdir_file = exdir.File(exdir_path)
-            # epochs = exdir_file.require_group("epochs")
-            # stim_epoch = epochs.require_group("visual_stimulus")
-            # stim_epoch.attrs["type"] = "visual_stimulus"
-            # times = stim_epoch.require_dataset('timestamps', data=timestamps)
-            # times.attrs['num_samples'] = len(timestamps)
-            # durations = stim_epoch.require_dataset('durations', data=durations)
-            # durations.attrs['num_samples'] = len(durations)
-            # data = stim_epoch.require_dataset('data', data=data)
-            # data.attrs['num_samples'] = len(data)
-            
-            
-            # EpochArray(times=array([], dtype=float64) * s, durations=array([], dtype=float64) * s, labels=array([],
-            # dtype='|S1'), name=None, description=None, file_origin=None, **annotations)
 
     @cli.command('register',
                  short_help='Generate an open-ephys recording-action to database.')
