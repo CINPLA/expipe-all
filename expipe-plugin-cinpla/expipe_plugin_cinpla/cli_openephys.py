@@ -4,7 +4,7 @@ from . import config
 from datetime import timedelta
 from glob import glob
 import pandas
-                
+
 
 
 
@@ -37,7 +37,7 @@ def attach_to_cli(cli):
                   type=click.STRING,
                   help='Path to desired exdir directory, if none it is deduced from action id.',
                   )
-    
+
     @click.option('--preprocess',
                   type=click.BOOL,
                   default=True,
@@ -68,7 +68,7 @@ def attach_to_cli(cli):
                   default='expipe',
                   help='Implementation used to pre-filter data, in [expipe, klusta, none]. Default is expipe, choice "none" disables filtering',
                   )
-    
+
     @click.option('--filter-low',
                   type=click.FLOAT,
                   default=500.,
@@ -118,14 +118,14 @@ def attach_to_cli(cli):
     @click.option('--no-local',
                   is_flag=True,
                   help='Store temporary on local drive.',
-                  )   
+                  )
     @click.option('--shutter-channel',
                   type=click.INT,
                   default=0,
                   help='TTL channel for shutter events to sync tracking',
                   )
     def process_openephys(action_id, prb_path,
-                          preprocess, spikesorter, convert_spikes, filter_method, # NEW 
+                          preprocess, spikesorter, convert_spikes, filter_method, # NEW
                           filter_low, filter_high,
                           filter_order, filter_function,
                           threshold,
@@ -162,7 +162,17 @@ def attach_to_cli(cli):
             prb_path = prb_path or settings.get('probe')
             openephys_file = pyopenephys.File(openephys_path, prb_path)
 
+
         # SHARED PREPROCESSING STEPS PRIOR TO SPIKESORTING
+        if split_probe is not None:
+            anas = openephys_file.analog_signals[0].signal
+            fs = openephys_file.sample_rate.magnitude
+            nchan = anas.shape[0]
+            del anas # clean namespace
+            split_chans = np.arange(nchan)
+            if split_probe != nchan / 2:
+                warnings.warn('The split probe is not dividing the number' +
+                              ' of channels in two')
         if preprocess:
             anas = openephys_file.analog_signals[0].signal
             fs = openephys_file.sample_rate.magnitude
@@ -174,11 +184,6 @@ def attach_to_cli(cli):
             if len(ground) != 0:
                 ground = [int(g) for g in ground]
                 anas = sig_tools.ground_bad_channels(anas, ground)
-            if split_probe is not None:
-                split_chans = np.arange(nchan)
-                if split_probe != nchan / 2:
-                    warnings.warn('The split probe is not dividing the number' +
-                                  ' of channels in two')
                 print('Splitting probe in channels \n"' +
                       str(split_chans[:split_probe]) + '"\nand\n"' +
                       str(split_chans[split_probe:]) + '"')
@@ -190,7 +195,7 @@ def attach_to_cli(cli):
                                     split_probe=split_probe)
             if len(ground) != 0:
                 duplicate = [int(g) for g in ground]
-                anas = sig_tools.duplicate_bad_channels(anas, duplicate, prb_path)        
+                anas = sig_tools.duplicate_bad_channels(anas, duplicate, prb_path)
             if spikesorter == 'klusta':
                 sig_tools.save_binary_format(openephys_base, anas,
                                              spikesorter=spikesorter,
@@ -201,6 +206,8 @@ def attach_to_cli(cli):
                                              spikesorter=spikesorter,
                                              dtype='int16')
             del anas # clean namespace
+
+
         # SPIKESORT DATA
         if spikesorter == 'klusta':
             try:
@@ -235,11 +242,11 @@ def attach_to_cli(cli):
                               threshold_weak_std_factor=klusta_threshold_weak_std_factor)
             print('Running klusta')
             try:
-                klusta_prm = os.path.abspath(openephys_base) + '.prm'            
+                klusta_prm = os.path.abspath(openephys_base) + '.prm'
                 subprocess.check_output(['klusta', klusta_prm, '--overwrite'])
             except subprocess.CalledProcessError as e:
                 raise Exception(e.output)
-            
+
         elif spikesorter == 'kilosort':
             try:
                 assert(convert_spikes == 'kilosort')
@@ -294,22 +301,23 @@ def attach_to_cli(cli):
             os.chdir(openephys_path)
             print('running KiloSort')
             try:
-                subprocess.call(['matlab', '-nodisplay', '-nodesktop', '-r',
+                subprocess.call(['matlab', '-nodisplay', '-nodesktop',
+                                 '-nosplash', '-wait',  '-r',
                                  'run kilosort_master.m; exit;'])
             except subprocess.CalledProcessError as e:
-                raise Exception(e.output)            
+                raise Exception(e.output)
             os.chdir(cwd)
-        
+
         elif spikesorter == 'none':
             print('Skipping spikesorting.')
         else:
             raise NotImplementedError('spikesorter {} not implemented'.format(spikesorter))
-        
+
         # CONVERT SPIKES TO EXDIR FORMAT
         if convert_spikes in ['klusta', 'kilosort']:
             if convert_spikes == 'klusta':
                 print('Converting from ".kwik" to ".exdir"')
-            elif convert_spikes == 'kilosort':                 
+            elif convert_spikes == 'kilosort':
                 print('konverting from KiloSort output to ".exdir"')
             openephys.generate_spike_trains(exdir_path, openephys_file,
                                             source=convert_spikes)
@@ -372,14 +380,12 @@ def attach_to_cli(cli):
                         for axis in 'XY':
                             led = position.require_group(id.replace('#', 'USB') + '_{}'.format(axis))
                             led.attrs['start_time'] = 0 * pq.s
-                            led.attrs['stop_time'] = openephys_file.duration                    
+                            led.attrs['stop_time'] = openephys_file.duration
                             inds = data['direction'] == axis
                             dset = led.require_dataset('data', data=data['value'][inds].cumsum()*pq.dimensionless)
                             dset.attrs['num_samples'] = inds.sum()
                             dset = led.require_dataset('times', data=data['time'][inds]*pq.s)   # TODO: GRAB P-PORT EVENT - 10 s as mouse recording is always 10 s before the first visual stimulus
                             dset.attrs['num_samples'] = inds.sum()
-
-
                 if shutter_channel is not None:
                     ttl_times = openephys_file.digital_in_signals[0].times[shutter_channel]
                     if len(ttl_times) != 0:
@@ -388,10 +394,12 @@ def attach_to_cli(cli):
                         warnings.warn('No TTL events found on IO channel {}'.format(
                             shutter_channel))
                         ttl_time = trackball_time_offset*pq.s
+                print('Converting tracking from trackball (manymouse) raw data to ".exdir"')
                 generate_tracking(openephys_path, openephys_file, exdir_file, ttl_time)
 
 
         if visual == 'psychopy':
+            print('Converting PsychoPy visual stimulation output to ".exdir"')
             stimfiles = glob(os.path.join(openephys_path, '*.jsonl'))
             if len(stimfiles) == 0:
                 raise Exception('Found no .jsonl file in folder {}'.format(openephys_path))
@@ -435,7 +443,7 @@ def attach_to_cli(cli):
                     else:
                         dset = stim.require_dataset(k, data=df[k].values)
                     dset.attrs['num_samples'] = num_samples
-            
+
             # keys = ["image", "sparsenoise", "grating", "sparsenoise", "movie"]
             # valuekeys = ["duration", "image", "phase", "spatial_frequency", "frequency", "orientation", "movie"]
             # {"image": {"duration": 0.25, "image": "..\\datasets\\converted_images\\image0004.png"}}
