@@ -420,8 +420,6 @@ def attach_to_cli(cli):
             keys = []
             for stim in jsonl:
                 keys += list(stim.keys())
-                # for key in stim.keys():
-                #     keys.append(key)
             keys = np.array(keys)
             ttl_times = openephys_file.digital_in_signals[0].times[shutter_channel]
             try:
