@@ -638,6 +638,7 @@ def attach_to_cli(cli):
                     'Delete raw data in {}? (yes/no)'.format(openephys_path),
                     default='no'):
                     shutil.rmtree(openephys_path)
+                    
 
     @cli.command('convert-klusta-oe',
                  short_help='Convert klusta spikes to exdir.')

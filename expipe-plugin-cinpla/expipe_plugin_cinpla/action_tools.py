@@ -4,6 +4,7 @@ from .config import load_parameters
 
 nwb_main_groups = ['acquisition', 'analysis', 'processing', 'epochs',
                    'general']
+tmp_phy_folders = ['.klustakwik2', '.phy', '.spikedetect']
 
 
 def get_git_info():

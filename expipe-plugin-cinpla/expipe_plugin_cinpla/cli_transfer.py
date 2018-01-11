@@ -74,7 +74,7 @@ def attach_to_cli(cli):
         assert server in expipe.config.settings
         server_dict = expipe.config.settings.get(server)
         if len(exclude) > 0 and len(include) > 0:
-            raise IOError('You can only use exlude or include')
+            raise IOError('You can only use exclude or include')
         project = expipe.get_project(PAR.USER_PARAMS['project_id'])
         action = project.require_action(action_id)
         fr = action.require_filerecord()
@@ -111,6 +111,8 @@ def attach_to_cli(cli):
                     for ex in action_tools.nwb_main_groups:
                         if ex not in include:
                             exclude_statement += '--exclude=' + ex + ' '
+                for ex in action_tools.tmp_phy_folders:
+                    exclude_statement += '--exclude=' + ex + ' '
                 ssh_execute(ssh, "tar" + exclude_statement + "-cf " +
                             server_data + '.tar ' + server_data)
                 scp_client.get(server_data + '.tar', local_data + '.tar',
