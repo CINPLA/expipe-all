@@ -22,6 +22,9 @@ run(fullfile(cpath, 'kilosort_config.m'))
 rez                = fitTemplates(rez, DATA, uproj);  % fit templates iteratively
 rez                = fullMPMU(rez, DATA);% extract final spike times (overlapping extraction)
 
+% auto-merge clusters
+% rez = merge_posthoc2(rez);
+
 % save python results file for Phy
 rezToPhy(rez, fpath);
 

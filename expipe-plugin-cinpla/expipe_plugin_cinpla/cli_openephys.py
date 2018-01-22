@@ -4,6 +4,7 @@ from . import config
 from datetime import timedelta
 from glob import glob
 import pandas
+from warnings import warn
 
 
 
@@ -425,7 +426,14 @@ def attach_to_cli(cli):
             try:
                 assert(keys.size == ttl_times.size)
             except AssertionError:
-                raise Exception('number of shutter-channel events ({}) do not match number of visual stimuli ({})'.format(ttl_times.size, keys.size))
+                warn('number of shutter-channel events ({}) do not match number of visual stimuli ({}), '.format(ttl_times.size, keys.size))
+                if keys.size < ttl_times.size:
+                    warn('discarding {} last shutter-channel events'.format(ttl_times-keys.size))
+                    ttl_times = ttl_times[:keys.size]
+                elif ttl_times.size < keys.size:
+                    warn('discarding {} last visual stimuli events'.format(keys.size - ttl_times.size))
+                    keys = keys[:ttl_times.size]
+                    jsonl = jsonl[:ttl_times.size]
             for key in np.unique(keys):
                 stim = visual.require_group(key)
                 stim.attrs['start_time'] = 0 * pq.s
@@ -449,6 +457,7 @@ def attach_to_cli(cli):
             # {"grating": {"duration": 0.25, "phase": 0.5, "spatial_frequency": 0.16, "frequency": 0, "orientation": 120}}
             # {"movie": {"movie": "..\\datasets\\converted_movies\\segment1.mp4"}}
             # {"grating": {"phase": "f*t", "duration": 2.0, "spatial_frequency": 0.04, "frequency": 4, "orientation": 225}}
+            # {"grayscreen" : {"duration": 300.}}
 
 
     @cli.command('register',
