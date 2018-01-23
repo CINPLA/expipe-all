@@ -1,5 +1,5 @@
-% flag for GPU (must have CUDA installed)
-useGPU = 0;
+% flag for GPU (must have CUDA libraries installed with compatible MATLAB version)
+useGPU = 1;
 
 % data folder path
 fpath    = '{}';
@@ -27,4 +27,3 @@ rez                = fullMPMU(rez, DATA);% extract final spike times (overlappin
 
 % save python results file for Phy
 rezToPhy(rez, fpath);
-

@@ -5,13 +5,17 @@ split_probe = {}; % number of channels per group
 connected = true(Nchannels, 1);
 chanMap   = 1:Nchannels;
 chanMap0ind = chanMap - 1;
-[xcoords, ycoords] = meshgrid(1:split_probe, 1:Nchannels/split_probe);
+[ycoords, xcoords] = meshgrid(1:split_probe, 1:Nchannels/split_probe);
 xcoords = reshape(xcoords.', 1, [])*50;
+xcoords  = (xcoords - mean(xcoords))*1;
 ycoords = reshape(ycoords.', 1, [])*50;
-kcoords   = zeros(Nchannels, Nchannels/split_probe); % grouping of channels (i.e. tetrode groups)
+kcoords   = zeros(Nchannels/split_probe, Nchannels); % grouping of channels (i.e. tetrode groups)
 for i = 1:Nchannels/split_probe
-    kcoords(split_probe*(i-1)+1:split_probe*i, i) = 1;
+    kcoords(i, split_probe*(i-1)+1:split_probe*i) = 1;
 end
+kcoords = kcoords';
+%kcoords = ones(Nchannels, 1); % assumes that probe is a linear array
+
 
 fs = {}; % sampling frequency
 save(fullfile(fpath, 'chanMap.mat'), ...
@@ -20,15 +24,15 @@ save(fullfile(fpath, 'chanMap.mat'), ...
 %%
 
 % kcoords is used to forcefully restrict templates to channels in the same
-% channel group. An option can be set in the master_file to allow a fraction 
-% of all templates to span more channel groups, so that they can capture shared 
+% channel group. An option can be set in the master_file to allow a fraction
+% of all templates to span more channel groups, so that they can capture shared
 % noise across all channels. This option is
 
-% ops.criterionNoiseChannels = 0.2; 
+% ops.criterionNoiseChannels = 0.2;
 
 % if this number is less than 1, it will be treated as a fraction of the total number of clusters
 
 % if this number is larger than 1, it will be treated as the "effective
 % number" of channel groups at which to set the threshold. So if a template
 % occupies more than this many channel groups, it will not be restricted to
-% a single channel group. 
+% a single channel group.

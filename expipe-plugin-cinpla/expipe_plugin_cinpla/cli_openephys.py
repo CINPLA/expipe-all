@@ -287,7 +287,7 @@ def attach_to_cli(cli):
                 openephys_path, openephys_path
             )
             kilosort_config = ''.join(kilosort_config).format(
-                nchan, nchan, fs, openephys_session, threshold,
+                nchan, nchan, fs, openephys_session, filter_low, filter_high, threshold,
             )
             kilosort_channelmap = ''.join(kilosort_channelmap
                                           ).format(nchan, split_probe, fs)
@@ -647,7 +647,7 @@ def attach_to_cli(cli):
                     'Delete raw data in {}? (yes/no)'.format(openephys_path),
                     default='no'):
                     shutil.rmtree(openephys_path)
-                    
+
 
     @cli.command('convert-klusta-oe',
                  short_help='Convert klusta spikes to exdir.')
