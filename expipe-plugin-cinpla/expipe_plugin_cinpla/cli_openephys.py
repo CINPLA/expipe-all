@@ -307,6 +307,9 @@ def attach_to_cli(cli):
                                  'run kilosort_master.m; exit;'])
             except subprocess.CalledProcessError as e:
                 raise Exception(e.output)
+            print('\nkilosort cluster output can now be manually corrected by issuing:\n\n',
+                  '>cd {}\n'.format(openephys_path),
+                  '>phy template-gui params.py\n')
             os.chdir(cwd)
 
         elif spikesorter == 'none':
