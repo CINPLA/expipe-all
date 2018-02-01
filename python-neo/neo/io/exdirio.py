@@ -338,6 +338,12 @@ class ExdirIO(BaseIO):
                                                          cascade=cascade,
                                                          lazy=lazy)
                             seg.analogsignals.append(ana)
+                    if 'MUA' in sub_group:
+                        for mua_group in sub_group['MUA'].values():
+                            ana = self.read_analogsignal(mua_group.name,
+                                                         cascade=cascade,
+                                                         lazy=lazy)
+                            seg.analogsignals.append(ana)
 
                     sptr = None
                     if 'UnitTimes' in sub_group:
@@ -374,6 +380,13 @@ class ExdirIO(BaseIO):
         if 'LFP' in channel_group:
             for lfp_group in channel_group['LFP'].values():
                 ana = self.read_analogsignal(lfp_group.name,
+                                             cascade=cascade,
+                                             lazy=lazy)
+                chx.analogsignals.append(ana)
+                ana.channel_index = chx
+        if 'MUA' in channel_group:
+            for mua_group in channel_group['MUA'].values():
+                ana = self.read_analogsignal(mua_group.name,
                                              cascade=cascade,
                                              lazy=lazy)
                 chx.analogsignals.append(ana)

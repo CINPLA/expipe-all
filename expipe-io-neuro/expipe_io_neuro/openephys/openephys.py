@@ -4,6 +4,9 @@ import glob
 import os
 import quantities as pq
 import numpy as np
+import scipy.signal as ss
+import copy
+
 
 # from expipe.io.core import Filerecord
 # from expipe.io.core import user
@@ -62,8 +65,6 @@ def _prepare_channel_groups(exdir_path, openephys_file):
 
 
 def generate_lfp(exdir_path, openephys_file):
-    import scipy.signal as ss
-    import copy
     exdir_channel_groups = _prepare_channel_groups(exdir_path, openephys_file)
     for channel_group, openephys_channel_group in zip(exdir_channel_groups,
                                                       openephys_file.channel_groups):
@@ -71,32 +72,101 @@ def generate_lfp(exdir_path, openephys_file):
         group_id = openephys_channel_group.id
         print('Generating LFP, channel group ', group_id)
         for channel in openephys_channel_group.channels:
-                lfp_timeseries = lfp.require_group(
-                    "LFP_timeseries_{}".format(channel.index)
-                )
+            lfp_timeseries = lfp.require_group(
+                "LFP_timeseries_{}".format(channel.index)
+            )
+            analog_signal = openephys_channel_group.analog_signals[channel.index]
+            # decimate
+            target_rate = 1000 * pq.Hz
+            signal = np.array(analog_signal.signal, dtype=float)
+            sample_rate = copy.copy(analog_signal.sample_rate)
+            qs = [10, int((analog_signal.sample_rate / target_rate) / 10)]
+            for q in qs:
+                signal = ss.decimate(signal, q=q, zero_phase=True)
+                sample_rate /= q
+            t_stop = len(signal) / sample_rate
+            assert round(t_stop, 1) == round(openephys_file.duration, 1), '{}, {}'.format(t_stop, openephys_file.duration)
+            signal = signal * channel.gain
+            lfp_timeseries.attrs["num_samples"] = len(signal)
+            lfp_timeseries.attrs["start_time"] = 0 * pq.s
+            lfp_timeseries.attrs["stop_time"] = t_stop
+            lfp_timeseries.attrs["sample_rate"] = sample_rate
+            lfp_timeseries.attrs["electrode_identity"] = analog_signal.channel_id
+            lfp_timeseries.attrs["electrode_idx"] = analog_signal.channel_id - openephys_channel_group.id * 4
+            lfp_timeseries.attrs['electrode_group_id'] = group_id
+            data = lfp_timeseries.require_dataset("data", data=signal)
+            data.attrs["num_samples"] = len(signal)
+            # NOTE: In exdirio (python-neo) sample rate is required on dset #TODO
+            data.attrs["sample_rate"] = sample_rate
+
+
+def generate_mua(exdir_path, openephys_file, N=2, fcrit=300.*pq.Hz, car=True):
+    '''
+    Parameters
+    ----------
+    exdir_path : path
+        path to exdir directory
+    openephys_file :
+        openephys file object
+    N : int
+        Butterworth filter order. Default is 2
+    fcrit : float*pq.Hz
+        Critical frequency for butterworth highpass filter
+    car : bool
+        subtract the mean non-rectified mua from the signals. Default is True
+    '''
+    exdir_channel_groups = _prepare_channel_groups(exdir_path, openephys_file)
+    for channel_group, openephys_channel_group in zip(exdir_channel_groups,
+                                                      openephys_file.channel_groups):
+        mua = channel_group.require_group("MUA")
+        group_id = openephys_channel_group.id
+        print('Generating MUA, channel group ', group_id)
+        if car:
+            for i, channel in enumerate(openephys_channel_group.channels):
                 analog_signal = openephys_channel_group.analog_signals[channel.index]
-                # decimate
-                target_rate = 1000 * pq.Hz
-                signal = np.array(analog_signal.signal, dtype=float)
                 sample_rate = copy.copy(analog_signal.sample_rate)
-                qs = [10, int((analog_signal.sample_rate / target_rate) / 10)]
-                for q in qs:
-                    signal = ss.decimate(signal, q=q, zero_phase=True)
-                    sample_rate /= q
-                t_stop = len(signal) / sample_rate
-                assert round(t_stop, 1) == round(openephys_file.duration, 1), '{}, {}'.format(t_stop, openephys_file.duration)
-                signal = signal * channel.gain
-                lfp_timeseries.attrs["num_samples"] = len(signal)
-                lfp_timeseries.attrs["start_time"] = 0 * pq.s
-                lfp_timeseries.attrs["stop_time"] = t_stop
-                lfp_timeseries.attrs["sample_rate"] = sample_rate
-                lfp_timeseries.attrs["electrode_identity"] = analog_signal.channel_id
-                lfp_timeseries.attrs["electrode_idx"] = analog_signal.channel_id - openephys_channel_group.id * 4
-                lfp_timeseries.attrs['electrode_group_id'] = group_id
-                data = lfp_timeseries.require_dataset("data", data=signal)
-                data.attrs["num_samples"] = len(signal)
-                # NOTE: In exdirio (python-neo) sample rate is required on dset #TODO
-                data.attrs["sample_rate"] = sample_rate
+                b, a = ss.butter(N=N, Wn=(fcrit/sample_rate/2), btype='high')                
+                if i == 0:
+                    mean = ss.filtfilt(b, a, np.array(analog_signal.signal, dtype=float), axis=-1)
+                else:
+                    mean += ss.filtfilt(b, a, np.array(analog_signal.signal, dtype=float), axis=-1)
+            
+            mean /= len(openephys_channel_group.analog_signals)
+            raise Exception
+            
+        for channel in openephys_channel_group.channels:
+            mua_timeseries = mua.require_group(
+                "MUA_timeseries_{}".format(channel.index)
+            )
+            analog_signal = openephys_channel_group.analog_signals[channel.index]
+            # highpass-filter data
+            target_rate = 1000 * pq.Hz
+            signal = np.array(analog_signal.signal, dtype=float)
+            sample_rate = copy.copy(analog_signal.sample_rate)
+            b, a = ss.butter(N=N, Wn=(fcrit/sample_rate/2), btype='high')                
+            signal = ss.filtfilt(b, a, signal, axis=-1)
+            if car:
+                signal -= mean
+            # rectify
+            signal = abs(signal)
+            # decimate
+            q = int(analog_signal.sample_rate / target_rate)
+            signal = ss.decimate(signal, q=q, n=q*2, ftype='fir', zero_phase=True)
+            sample_rate /= q
+            t_stop = len(signal) / sample_rate
+            assert round(t_stop, 1) == round(openephys_file.duration, 1), '{}, {}'.format(t_stop, openephys_file.duration)
+            signal = signal * channel.gain
+            mua_timeseries.attrs["num_samples"] = len(signal)
+            mua_timeseries.attrs["start_time"] = 0 * pq.s
+            mua_timeseries.attrs["stop_time"] = t_stop
+            mua_timeseries.attrs["sample_rate"] = sample_rate
+            mua_timeseries.attrs["electrode_identity"] = analog_signal.channel_id
+            mua_timeseries.attrs["electrode_idx"] = analog_signal.channel_id - openephys_channel_group.id * 4
+            mua_timeseries.attrs['electrode_group_id'] = group_id
+            data = mua_timeseries.require_dataset("data", data=signal)
+            data.attrs["num_samples"] = len(signal)
+            # NOTE: In exdirio (python-neo) sample rate is required on dset #TODO
+            data.attrs["sample_rate"] = sample_rate
 
 
 def generate_spike_trains(exdir_path, openephys_file, source='klusta'):

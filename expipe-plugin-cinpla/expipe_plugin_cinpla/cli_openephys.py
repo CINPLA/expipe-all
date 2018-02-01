@@ -104,6 +104,10 @@ def attach_to_cli(cli):
                   is_flag=True,
                   help='Disable convertion of LFP to exdir.',
                   )
+    @click.option('--mua',
+                  type=click.Choice(['True', 'False']),
+                  default='True',
+                  help='Create rectified MUA signal timeseries from raw recording [True, False]. Default is True')
     @click.option('--tracking',
                   type=click.Choice(['openephys', 'trackball', 'none']),
                   default='openephys',
@@ -137,6 +141,7 @@ def attach_to_cli(cli):
                           exdir_path,
                           shutter_channel,
                           no_lfp,
+                          mua,
                           tracking,
                           trackball_time_offset,
                           visual,
@@ -331,6 +336,13 @@ def attach_to_cli(cli):
             print('Filtering and downsampling raw data to LFP.')
             openephys.generate_lfp(exdir_path, openephys_file)
             print('Finished processing LFPs.')
+
+        if mua:
+            print('filtering, rectifying, smoothing raw data to MUA')
+            openephys.generate_mua(exdir_path, openephys_file)
+            print('Finished processing MUAs.')            
+
+
 
         if tracking in ['openephys', 'trackball']:
             if tracking == 'openephys':
