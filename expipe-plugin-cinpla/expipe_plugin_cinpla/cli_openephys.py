@@ -95,7 +95,7 @@ def attach_to_cli(cli):
     @click.option('--split-probe',
                   type=click.INT,
                   default=16,
-                  help='Splits referencing in 2 at selected channel (for CAR/CMR). Default is 16',
+                  help='Splits referencing every N channel (for CAR/CMR). Will also assign every N channels to each channel group. Default is 16',
                   )
     @click.option('--ground', '-g',
                   multiple=True,
@@ -126,7 +126,7 @@ def attach_to_cli(cli):
                   help='TTL channel for shutter events to sync tracking',
                   )
     def process_openephys(action_id, prb_path,
-                          preprocess, spikesorter, convert_spikes, filter_method, # NEW
+                          preprocess, spikesorter, convert_spikes, filter_method,
                           filter_low, filter_high,
                           filter_order, filter_function,
                           threshold,
