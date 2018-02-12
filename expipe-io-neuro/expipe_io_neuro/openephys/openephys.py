@@ -125,14 +125,13 @@ def generate_mua(exdir_path, openephys_file, N=2, fcrit=300.*pq.Hz, car=True):
             for i, channel in enumerate(openephys_channel_group.channels):
                 analog_signal = openephys_channel_group.analog_signals[channel.index]
                 sample_rate = copy.copy(analog_signal.sample_rate)
-                b, a = ss.butter(N=N, Wn=(fcrit/sample_rate/2), btype='high')                
+                b, a = ss.butter(N=N, Wn=(fcrit/sample_rate/2), btype='high')
                 if i == 0:
                     mean = ss.filtfilt(b, a, np.array(analog_signal.signal, dtype=float), axis=-1)
                 else:
                     mean += ss.filtfilt(b, a, np.array(analog_signal.signal, dtype=float), axis=-1)
-            
+
             mean /= len(openephys_channel_group.analog_signals)
-            raise Exception
             
         for channel in openephys_channel_group.channels:
             mua_timeseries = mua.require_group(
@@ -143,7 +142,7 @@ def generate_mua(exdir_path, openephys_file, N=2, fcrit=300.*pq.Hz, car=True):
             target_rate = 1000 * pq.Hz
             signal = np.array(analog_signal.signal, dtype=float)
             sample_rate = copy.copy(analog_signal.sample_rate)
-            b, a = ss.butter(N=N, Wn=(fcrit/sample_rate/2), btype='high')                
+            b, a = ss.butter(N=N, Wn=(fcrit/sample_rate/2), btype='high')
             signal = ss.filtfilt(b, a, signal, axis=-1)
             if car:
                 signal -= mean
@@ -247,7 +246,7 @@ def generate_spike_trains(exdir_path, openephys_file, source='klusta'):
                 if cgroup.shape == (0, ):
                     raise FileNotFoundError
             except FileNotFoundError:
-                # manual corrections didn't happen; 
+                # manual corrections didn't happen;
                 cgroup = np.array(list(zip(np.unique(spc),
                                            ['unsorted']*np.unique(spc).size)),
                                   dtype=[('cluster_id', 'i4'), ('group', 'U8')])
