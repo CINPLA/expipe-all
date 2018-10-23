@@ -1,0 +1,22 @@
+{
+    "animal_state": {
+        "alternatives": [
+            "sessile",
+            "moving"
+        ],
+        "definition": "Sessile or moving state.",
+        "value": ""
+    },
+    "dark": {
+        "alternatives": [
+            "y",
+            "n"
+        ],
+        "definition": "Describes whether the session was performed in darkness.",
+        "value": ""
+    },
+    "definition": "Miscellaneous properties of mros session.",
+    "identifier": "ida_mros_misc",
+    "name": "ida_mros_misc",
+    "num_screens": ""
+}

@@ -1,0 +1,17 @@
+{
+    "condition": {
+        "alternatives": [
+            "fixed",
+            "moving"
+        ],
+        "definition": "Describes whether the platform is fixed or moving.",
+        "value": ""
+    },
+    "definition": "Describes the properties of the moving platform.",
+    "fixed_angle": {
+        "unit": "deg",
+        "value": ""
+    },
+    "identifier": "ida_mros_moving_platform",
+    "name": "ida_mros_moving_platform"
+}

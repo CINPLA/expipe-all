@@ -7,6 +7,48 @@
     "description": {
         "value": "Implantation of optetrodes in Medial Entorhinal Cortex and fibre optcis in Medial Septum."
     },
+    "electrophysiology": {
+        "channel_groups": {
+            "definition": "Which channel groups are associated with this electrophysiological procedure",
+            "value": [
+                4.0,
+                5.0,
+                6.0,
+                7.0
+            ]
+        },
+        "definition": "Describing electrophysiology in the expirimental setup.",
+        "ref_electrode_location": {
+            "alternatives": [
+                "Posterior to bregma"
+            ],
+            "definition": "Describes the location of the reference electrode.",
+            "value": "Posterior to bregma, right hemisphere"
+        },
+        "subtype": {
+            "alternatives": [
+                "dual electrode recording",
+                "multi electrode recording",
+                "single electrode recording"
+            ],
+            "definition": "Subtype of this electrophysiological experiment.",
+            "value": "multi electrode recording"
+        },
+        "type": {
+            "alternatives": [
+                "EEG",
+                "EKG",
+                "EMG",
+                "ERG",
+                "extracellular recording",
+                "intracellular recording",
+                "loose patch",
+                "patch clamp",
+                "whole cell patch"
+            ],
+            "value": "extracellular recording"
+        }
+    },
     "hemisphere": {
         "alternatives": {
             "C, center": "between hemispheres",
@@ -51,48 +93,6 @@
             "x": "lambda",
             "y": "transverse sinus",
             "z": "dura"
-        }
-    },
-    "electrophysiology": {
-        "ref_electrode_location": {
-            "alternatives": [
-                "Posterior to bregma"
-            ],
-            "definition": "Describes the location of the reference electrode.",
-            "value": "Posterior to bregma, right hemisphere"
-        },
-        "channel_groups": {
-            "definition": "Which channel groups are associated with this electrophysiological procedure",
-            "value": [
-                4.0,
-                5.0,
-                6.0,
-                7.0
-            ]
-        },
-        "definition": "Describing electrophysiology in the expirimental setup.",
-        "subtype": {
-            "alternatives": [
-                "dual electrode recording",
-                "multi electrode recording",
-                "single electrode recording"
-            ],
-            "definition": "Subtype of this electrophysiological experiment.",
-            "value": "multi electrode recording"
-        },
-        "type": {
-            "alternatives": [
-                "EEG",
-                "EKG",
-                "EMG",
-                "ERG",
-                "extracellular recording",
-                "intracellular recording",
-                "loose patch",
-                "patch clamp",
-                "whole cell patch"
-            ],
-            "value": "extracellular recording"
         }
     }
 }

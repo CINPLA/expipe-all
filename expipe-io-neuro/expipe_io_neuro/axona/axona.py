@@ -6,8 +6,8 @@ import os
 import quantities as pq
 import numpy as np
 
-# from expipe.io.core import Filerecord
-# from expipe.io.core import user
+# from expipe.core import Filerecord
+# from expipe.core import user
 # from expipe import settings
 
 # TODO inform database about axona data being included

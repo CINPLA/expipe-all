@@ -1,5 +1,5 @@
-# import expipe.io
-# import expipe.io.axona
+# import expipe
+# import expipe.axona
 # import datetime
 # import os
 # import shutil
@@ -8,8 +8,8 @@
 
 
 # def test_import_axona_data():
-#     # experiment = expipe.io.load_experiment("vistrack-lasse-2016-03-02-1")
-#     # experiment = expipe.io.load_experiment(project="vistrack", subject="lasse", date="2016-03-02")
+#     # experiment = expipe.load_experiment("vistrack-lasse-2016-03-02-1")
+#     # experiment = expipe.load_experiment(project="vistrack", subject="lasse", date="2016-03-02")
 #     if os.path.exists('/tmp/test'):
 #         shutil.rmtree('/tmp/test')
 #     os.mkdir('/tmp/test')
@@ -23,11 +23,11 @@
 #         print("Sorry, this test cannot be run. We need an open Axona test file.")
 #         return
 #
-#     expipe.io.axona.convert(axona_filename, exdir_path)
+#     expipe.axona.convert(axona_filename, exdir_path)
 #
-#     expipe.io.axona.generate_analog_signals(exdir_path)
-#     expipe.io.axona.generate_spike_trains(exdir_path)
-#     expipe.io.axona.generate_clusters(exdir_path)
-#     expipe.io.axona.generate_units(exdir_path)
-#     expipe.io.axona.generate_inp(exdir_path)
-#     expipe.io.axona.generate_tracking(exdir_path)
+#     expipe.axona.generate_analog_signals(exdir_path)
+#     expipe.axona.generate_spike_trains(exdir_path)
+#     expipe.axona.generate_clusters(exdir_path)
+#     expipe.axona.generate_units(exdir_path)
+#     expipe.axona.generate_inp(exdir_path)
+#     expipe.axona.generate_tracking(exdir_path)

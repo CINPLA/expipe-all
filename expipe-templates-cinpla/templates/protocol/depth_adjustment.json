@@ -1,0 +1,14 @@
+{
+    "adjustment": {
+        "unit": "dimensionless",
+        "value": ""
+    },
+    "date": "dd.mm.yyyy:HH:MM",
+    "depth": {
+        "unit": "dimensionless",
+        "value": ""
+    },
+    "experimenter": "",
+    "identifier": "protocol_depth_adjustment",
+    "registered": "2017-09-01T09:51:20.999Z"
+}

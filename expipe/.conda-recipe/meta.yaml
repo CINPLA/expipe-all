@@ -1,24 +1,18 @@
 package:
   name: expipe
-  version: {{ environ.get("GIT_TAG", "0.0.0_custom")|replace("v", "")|replace("-", "_") }}
+  version: {{ environ.get("GIT_STRING", "0.0.0_custom")|replace("v", "")|replace("-", "_") }}
 
 source:
   git_url: ..
 
 build:
-    # noarch: python  # TODO Add back noarch when it works properly on Windows,
-                      # we are converting packages manually now
-    script:
-      - pip install pyrebase quantities
-      - python setup.py install
+    noarch: python
+    script: python setup.py install
 
 requirements:
   build:
     - python
     - setuptools
-    - pyyaml
-    - pip
-    - numpy
 
   run:
     - python
@@ -26,12 +20,22 @@ requirements:
     - pip
     - pyyaml
     - numpy
+    - quantities ==0.12.1
 
 test:
-  imports:
+  source_files:
     - expipe
   requires:
-    - sphinx
+    - pytest
+    - dpath
+    - coverage
+    - codecov
+  imports:
+    - expipe
+  commands:
+    - coverage run --source expipe --omit expipe/_version.py -m py.test -s
+    - coverage report
+    - codecov
 
 about:
   home: https://github.com/CINPLA/expipe/

@@ -9,7 +9,7 @@
         "value": "Marcain"
     },
     "local_anaesthetic_dose": {
-        "unit": "ml",
+        "unit": "mL",
         "value": 0.05
     },
     "local_anaesthetic_location": {

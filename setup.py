@@ -10,7 +10,6 @@ from setuptools.command.develop import develop as _develop
 def setupInstall(cmd, arg):
     dep_list = [
         'python-neo',
-        'elephant',
         'exdir',
         'expipe',
         'expipe-plugin-cinpla',
@@ -18,7 +17,8 @@ def setupInstall(cmd, arg):
         'exdir-cli',
         'expipe-io-neuro',
         'exana',
-        'pyxona'
+        'pyxona',
+        'py-open-ephys'
     ]
 
     browser_list = [
@@ -36,6 +36,10 @@ def setupInstall(cmd, arg):
     elif arg == 'phy':
         print('Installing expipe with phy')
         dep_list += phy_list
+    elif arg == 'all':
+        print('Installing expipe with phy and browser')
+        dep_list += phy_list
+        dep_list += browser_list
     else:
         print('Installing expipe without browsers')
     for dep in dep_list:
@@ -51,7 +55,7 @@ class CustomInstall(Command):
         self.extra = None
 
     def finalize_options(self):
-        assert self.extra in (None, 'browser', 'phy'), 'Invalid extra!'
+        assert self.extra in (None, 'browser', 'phy', 'all'), 'Invalid extra!'
 
     def run(self):
         if 'develop' in sys.argv:

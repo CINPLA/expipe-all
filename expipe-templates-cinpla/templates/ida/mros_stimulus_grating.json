@@ -1,0 +1,81 @@
+{
+    "contrast": {
+        "definition": "The contrast of the grating stimulus.",
+        "value": ""
+    },
+    "definition": "Properties to describe Grating stimuli.",
+    "drifting_velocity": {
+        "definition": "In case of a constantly drifting grating, the velocity",
+        "value": ""
+    },
+    "duration": {
+        "definition": "The duration of the stimulus in seconds.",
+        "value": ""
+    },
+    "function": {
+        "definition": "The function of the described stimulus. E.g. if the white noise constituted the carrier.",
+        "value": ""
+    },
+    "grating_type": {
+        "definition": "The type of  grating, i.e. 'sinewave' or 'sqaurewave'.",
+        "value": ""
+    },
+    "identifier": "ida_mros_stimulus_grating",
+    "intensity": {
+        "definition": "The mean intensity of the grating stimulus.",
+        "value": ""
+    },
+    "modality": {
+        "definition": "The stimulus modality like acoustic, haptic, visual etc.",
+        "value": ""
+    },
+    "name": "ida_mros_stimulus_grating",
+    "orientation": {
+        "count": "",
+        "definition": "The orientation of the grating in degrees.",
+        "start": "",
+        "stop": ""
+    },
+    "output_channel": {
+        "definition": "The physical output device (e.g. an analog output channel, a monitor screen, the same loudspeaker, etc.). This information can be used to explicitly express that several stimuli (that share the same OutputChannel) are jointly presented.",
+        "value": ""
+    },
+    "position": {
+        "definition": "The position of the stimulus on e.g the screen. Specified as a 2-tuple (x;y). By default this position refers to the top-left corner of the object or its bounding box.",
+        "value": ""
+    },
+    "position_reference": {
+        "alternatives": [
+            "bottom-right",
+            "center",
+            "top-left"
+        ],
+        "definition": "By default stimulus positions are specified by the coordinates of the top-left corner (or of the bounding box). Use this property for other definitions.",
+        "value": ""
+    },
+    "spatial_extent": {
+        "definition": "The spatial extend of the presented stimulus (width;height) e.g. (1024;768).",
+        "value": ""
+    },
+    "spatial_frequency": {
+        "definition": "the spatial frequency of the grating.",
+        "unit": "cpd",
+        "value": ""
+    },
+    "spatial_wavelength": {
+        "definition": "The spatial wavelength of the  grating.",
+        "value": ""
+    },
+    "temporal_frequency": {
+        "unit": "Hz",
+        "value": ""
+    },
+    "temporal_offset": {
+        "definition": "The temporal offset (with respect to the begin of the recorded trial) with which this stimulus was presented.",
+        "value": ""
+    },
+    "type": {
+        "definition": "The type of grating used. Commonly either Sinewave or Squarewave gratings are used.",
+        "value": ""
+    }
+}

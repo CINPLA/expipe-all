@@ -1,4 +1,4 @@
-import expipe.io
+import expipe
 import os
 import os.path as op
 import json

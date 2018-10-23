@@ -1,13 +1,13 @@
 package:
     name: expipe-browser
-    version: {{ environ.get("GIT_TAG", "0.0.0_custom")|replace("v", "")|replace("-", "_") }}
+    version: {{ environ.get("GIT_STRING", "0.0.0_custom")|replace("v", "")|replace("-", "_") }}
 source:
     path: .
     git_url: ..
 build:
     script: python setup.py install
- # noarch: python  # TODO Add back noarch when it works properly on Windows,
-                   # we are converting packages manually now
+    noarch: python
+
 entry_points:
   - expipe-browser = expipebrowser.main:main
 

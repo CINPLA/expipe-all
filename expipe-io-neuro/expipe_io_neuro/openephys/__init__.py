@@ -1,1 +1,1 @@
-from . import pyopenephys, openephys, tools
+from . import openephys, tools

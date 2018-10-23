@@ -1,0 +1,32 @@
+{
+    "axona_pos_tracking": {
+        "alternatives": [
+            "y",
+            "n"
+        ],
+        "definition": "Did axona position tracking",
+        "value": ""
+    },
+    "bonsai": {
+        "axona_synced": {
+            "alternatives": [
+                "y",
+                "n"
+            ],
+            "definition": "Is synced with axona",
+            "value": ""
+        },
+        "definition": "Describes the Bonsai tracking type.",
+        "position": {
+            "alternatives": [
+                "overhead",
+                "front"
+            ],
+            "definition": "Describes the position of the camera.",
+            "value": ""
+        }
+    },
+    "definition": "Describes the tracking type",
+    "identifier": "ida_mros_tracking",
+    "name": "ida_mros_tracking"
+}

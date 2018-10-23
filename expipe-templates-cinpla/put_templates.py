@@ -1,12 +1,12 @@
-import expipe.io
+import expipe
 import os
 import os.path as op
 import json
 import quantities as pq
 
 ########################### DANGER DELETES ALL PAR.TEMPLATES #######################
-expipe.io.core.FirebaseBackend("/templates").set({})
-expipe.io.core.FirebaseBackend("/templates_contents").set({})
+expipe.core.FirebaseBackend("/templates").set({})
+expipe.core.FirebaseBackend("/templates_contents").set({})
 ################################################################################
 
 for root, dirs, files in os.walk('templates'):
@@ -27,5 +27,5 @@ for root, dirs, files in os.walk('templates'):
             "name": name,
         }
         print('Put ' + name)
-        expipe.io.core.FirebaseBackend("/templates").set(name, template)
-        expipe.io.core.FirebaseBackend("/templates_contents").set(name, result)
+        expipe.core.FirebaseBackend("/templates").set(name, template)
+        expipe.core.FirebaseBackend("/templates_contents").set(name, result)

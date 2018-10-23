@@ -8,18 +8,13 @@ def pd():
     return pd
 
 @lazy_import
-def psychopyio():
-    from expipe_io_neuro import psychopyio
-    return psychopyio
-
-@lazy_import
 def sig_tools():
     import exana.misc.signal_tools as sig_tools
     return sig_tools
 
 @lazy_import
 def pyopenephys():
-    from expipe_io_neuro import pyopenephys
+    import pyopenephys
     return pyopenephys
 
 @lazy_import
@@ -46,16 +41,6 @@ def csv():
 def json():
     import json
     return json
-
-@lazy_import
-def pyintan():
-    from expipe_io_neuro import pyintan
-    return pyintan
-
-@lazy_import
-def intan():
-    from expipe_io_neuro import intan
-    return intan
 
 @lazy_import
 def axona():
@@ -175,7 +160,7 @@ def warnings():
 
 @lazy_import
 def PAR():
-    from .config import load_parameters
+    from expipe_plugin_cinpla.tools.config import load_parameters
     return load_parameters()
 
 @lazy_import

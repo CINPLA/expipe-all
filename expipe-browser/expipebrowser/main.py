@@ -25,9 +25,16 @@ from PyQt5.QtQml import qmlRegisterType, qmlRegisterSingletonType, QQmlComponent
 
 from . import qml_qrc
 from expipe import settings
-import expipe.io
+import expipe
 
 import time
+
+def sanitize_object_pairs(pairs):
+    for index, pair in enumerate(pairs):
+        key, value = pair
+        if isinstance(value, list):
+            pairs[index] = (key, OrderedDict({str(key): value for key, value in enumerate(value)}))
+    return OrderedDict(pairs)
 
 def deep_convert_dict(layer):
     to_ret = layer
@@ -145,10 +152,7 @@ class EventSource(QAbstractListModel):
             self.endRemoveRows()
             if data is not None:
                 self.beginInsertRows(QModelIndex(), 0, len(data) - 1)
-                if isinstance(data, list):
-                    self._contents = OrderedDict({str(key): value for key, value in enumerate(data)})
-                else:
-                    self._contents = OrderedDict(data)
+                self._contents = data
                 self.endInsertRows()
         else:
             changed_key = path[0]
@@ -188,7 +192,7 @@ class EventSource(QAbstractListModel):
     def processEvent(self, event_name, event_data):
         if event_name == "put" or event_name == "patch":
             try:
-                contents = json.loads(event_data, object_pairs_hook=OrderedDict)
+                contents = json.loads(event_data, object_pairs_hook=sanitize_object_pairs)
             except json.decoder.JSONDecodeError as ex:
                 print("ERROR: Could not decode on", self._path)
                 return
@@ -226,8 +230,8 @@ class EventSource(QAbstractListModel):
 
         if self._partial_message:
             print("WARNING: Received partial message, forcing update by an ugly hack.")
-            expipe.io.core.db.child(self._path).update({"__partial_update_hack": True}, expipe.io.core.user["idToken"])
-            expipe.io.core.db.child(self._path).update({"__partial_update_hack": None}, expipe.io.core.user["idToken"])
+            expipe.core.db.child(self._path).update({"__partial_update_hack": True}, expipe.core.user["idToken"])
+            expipe.core.db.child(self._path).update({"__partial_update_hack": None}, expipe.core.user["idToken"])
 
     def processFinished(self):
         reply = self.sender()
@@ -256,8 +260,8 @@ class EventSource(QAbstractListModel):
         if path == "":
             self.disconnect()
         else:
-            target = expipe.io.core.db.child(path).order_by_key().shallow()
-            url_str = target.build_request_url(token=expipe.io.core.user["idToken"])
+            target = expipe.core.db.child(path).order_by_key().shallow()
+            url_str = target.build_request_url(token=expipe.core.user["idToken"])
             url = QUrl(url_str)
             self.reconnect(url)
         self.pathChanged.emit()
@@ -306,10 +310,7 @@ class EventSource(QAbstractListModel):
         for key in path[:-1]:
             dic = dic.setdefault(key, {})
         if value is None:
-            if path[-1].isnumeric():
-                idx = int(path[-1])
-            else:
-                idx = path[-1]
+            idx = path[-1]
             del(dic[idx])
         else:
             if not isinstance(dic, dict):
@@ -454,11 +455,7 @@ class ActionAttributeModel(QAbstractListModel):
                 if self._name in val:
                     if isinstance(val[self._name], OrderedDict):
                         for attribute in val[self._name]:
-                            attributes.add(attribute)
-                        print('Warning: dict representation of list is deprecated')
-                    if isinstance(val[self._name], list):
-                        for attribute in val[self._name]:
-                            attributes.add(attribute)
+                            attributes.add(str(attribute))
                     elif isinstance(val[self._name], str):
                         attr = val[self._name]
                         if self._name == 'datetime':
@@ -468,11 +465,6 @@ class ActionAttributeModel(QAbstractListModel):
                 print("ERROR: Unexpected value of key", key)
 
         self.beginInsertRows(QModelIndex(), 0, len(attributes) - 1)
-        if None in attributes:
-            print('Warning: "None" found in attributes, this is shown as' +
-                  '"null" in qml, converting to "str".')
-            attributes = list(attributes)
-            attributes[attributes.index(None)] = 'None'
         self._attributes = sorted(list(attributes))
         self.endInsertRows()
 
@@ -499,11 +491,11 @@ class Pyrebase(QObject):
 
     @pyqtSlot(str, name="buildUrl", result=str)
     def build_url(self, path):
-        return expipe.io.core.db.child(path).build_request_url(expipe.io.core.user["idToken"])
+        return expipe.core.db.child(path).build_request_url(expipe.core.user["idToken"])
 
     @pyqtSlot(name="refreshToken")
     def refresh_token(self):
-        expipe.io.core.refresh_token()
+        expipe.core.refresh_token()
 
 pyrebase_static = Pyrebase()
 

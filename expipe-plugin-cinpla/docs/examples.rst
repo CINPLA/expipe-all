@@ -99,7 +99,7 @@ Drive adjustment
 ----------------
 
 The first time you want to adjust the brain-area ``X``, ``Y``
-(reffering to ``PAR.MODULES['implantation']['X']``) of a drive
+(reffering to ``PAR.TEMPLATES['implantation']['X']``) of a drive
 an amount of ``um`` you need to
 initialize an adjustment action with the command::
 

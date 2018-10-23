@@ -24,7 +24,7 @@ ANALYSIS_PARAMS = {
     'isi_time_limit': 100 * pq.ms,
 }
 
-MODULES = {
+TEMPLATES = {
     'implantation': {'mecl': 'mikkel_implant_drive_mecl',
                      'mecr': 'mikkel_implant_drive_mecr',
                      'ms': 'mikkel_implant_fibre_ms'},

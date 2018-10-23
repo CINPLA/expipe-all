@@ -18,7 +18,7 @@ from PyQt5.QtNetwork import QNetworkReply, QNetworkRequest, QNetworkAccessManage
 from PyQt5.QtQml import qmlRegisterType, QQmlComponent, QQmlApplicationEngine, QQmlNetworkAccessManagerFactory
 
 from expipe import settings
-import expipe.io
+import expipe
 
 streams = []
 
@@ -29,7 +29,7 @@ class StreamHandler(QObject):
         super().__init__(eventSource)
         self.open = True
         print("Setting up stream")
-        self.stream = expipe.io.core.db.child(path).stream(self.handle_message)
+        self.stream = expipe.core.db.child(path).stream(self.handle_message)
         print("Stream ready")
         self.eventSource = eventSource
         streams.append(self.stream)

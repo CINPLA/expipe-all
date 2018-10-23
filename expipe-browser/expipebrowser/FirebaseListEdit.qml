@@ -29,6 +29,9 @@ Item {
             return []
         }
         for(var i in currentValue) {
+            if (currentValue[i] === null) {
+                continue
+            }
             result.push({key: i, value: currentValue[i]})
         }
         return result
@@ -62,7 +65,7 @@ Item {
                 Repeater {
                     model: root.model
                     Item {
-                        property var backendText: modelData.value
+                        property var backendText: modelData.key
                         property bool hasChanges: backendText !== textInput.text
 
                         function putChanges(callback) {
@@ -77,7 +80,7 @@ Item {
                             var targetProperty = root.property
                             var oldName = name + "/" + modelData.key
                             var newData = {}
-                            newData[modelData.key] = textInput.text
+                            newData[textInput.text] = true
                             console.log("Changing", oldName, JSON.stringify(newData))
                             Firebase.patch(name, newData, function(req2) {
                                 console.log("Put result:", req2.status, req2.responseText)
@@ -119,22 +122,10 @@ Item {
                                         onClicked: {
                                             var name = experimentData.__path + "/" + root.property
                                             var oldName = name + "/" + modelData.key
+                                            console.log("Removing", name, oldName)
                                             Firebase.remove(oldName, function(req) {
                                                 console.log("Remove result", req.responseText)
                                             })
-                                            Firebase.get(name, function(req1) {
-                                              console.log("RESPONSE", req1.responseText)
-                                              var data = JSON.parse(req1.responseText)
-                                              var newData = []
-                                              for(var i = 0; i < data.length; i++) {
-                                                  if(data[i] !== null) {
-                                                      newData.push(data[i])
-                                                  }
-                                              }
-                                              Firebase.put(name, newData, function(req2) {
-                                                  console.log("Put result:", req2.status, req2.responseText)
-                                              })
-                                           })
                                         }
                                     }
                                 }
@@ -142,7 +133,7 @@ Item {
                         }
                     }
                 }
-                // TODO refresh view after adding new row
+
                 Row {
                     id: newRow
                     visible: false
@@ -158,8 +149,7 @@ Item {
 
                             var name = experimentData.__path + "/" + root.property
                             var newData = {}
-                            var index = root.model.length
-                            newData[index] = newInput.text
+                            newData[newInput.text] = true
                             Firebase.patch(name, newData, function(req2) {
                                 console.log("Put result:", req2.status, req2.responseText)
                                 root.reset()

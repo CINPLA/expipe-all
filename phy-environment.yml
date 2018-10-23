@@ -17,16 +17,17 @@ dependencies:
   - astropy
   - paramiko
   - packaging
+  - tqdm
+  - click
+  - six
+  - xmltodict
   - pip:
     - klusta
     - klustakwik2
     - vispy
     - requests
     - traitlets
-    - six
     - joblib
-    - click
-    - tqdm
     - pycircstat
     - quantities
     - pyrebase
@@ -34,3 +35,4 @@ dependencies:
     - scp
     - send2trash
     - packaging
+    - xmltodict

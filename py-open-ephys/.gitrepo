@@ -1,0 +1,11 @@
+; DO NOT EDIT (unless you know what you are doing)
+;
+; This subdirectory is a git "subrepo", and this file is maintained by the
+; git-subrepo command. See https://github.com/git-commands/git-subrepo#readme
+;
+[subrepo]
+	remote = git@github.com:CINPLA/py-open-ephys.git
+	branch = master
+	commit = e0a078348c06418c245d44057b6b377feae43d91
+	parent = 9005eb68b06acf7bda3b11a6bcaeb687f6cf5f66
+	cmdver = 0.3.1

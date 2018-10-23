@@ -5,8 +5,8 @@ import os
 import quantities as pq
 import numpy as np
 
-# from expipe.io.core import Filerecord
-# from expipe.io.core import user
+# from expipe.core import Filerecord
+# from expipe.core import user
 # from expipe import settings
 import os.path as op
 

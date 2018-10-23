@@ -14,7 +14,7 @@
         "value": "Rimadyl"
     },
     "post_op_analgesic_dose": {
-        "unit": "ml/g",
+        "unit": "mL/g",
         "value": 0.001
     },
     "post_op_analgesic_procedure": {

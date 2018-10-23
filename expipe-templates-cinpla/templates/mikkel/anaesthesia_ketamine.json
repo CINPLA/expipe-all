@@ -3,19 +3,17 @@
         "definition": "The drug used for anaesthesia.",
         "value": "Ketalar+Domitor"
     },
-    "anaesthetic_dose": {
-        "definition": "The dose of the used anaesthetic.",
-        "value": "",
-        "unit": "ml"
-    },
     "anaesthetic_antidrug": {
         "definition": "The drug used to wake up from anaesthesia.",
         "value": "Antisedan"
     },
     "anaesthetic_antidrug_dose": {
-        "definition": "The dose of the used anti drug.",
-        "value": 0.1,
-        "unit": "ml"
+        "unit": "mL",
+        "value": 0.1
+    },
+    "anaesthetic_dose": {
+        "unit": "mL",
+        "value": ""
     },
     "description": {
         "definition": "A textual description of the preparation.",
