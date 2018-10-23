@@ -104,8 +104,8 @@ def generate_mua(exdir_path, openephys_rec, N=2, fcrit=300.*pq.Hz, car=True):
     ----------
     exdir_path : path
         path to exdir directory
-    openephys_file :
-        openephys file object
+    openephys_rec :
+        pyopenephys.core.Recording object
     N : int
         Butterworth filter order. Default is 2
     fcrit : float*pq.Hz
@@ -220,7 +220,7 @@ def generate_spike_trains(exdir_path, openephys_rec, source='klusta'):
                 )
                 chx.units.append(unit)
             exdirio.write_channelindex(chx, start_time=0 * pq.s,
-                                       stop_time=openephys_file.duration)
+                                       stop_time=openephys_rec.duration)
     elif source == 'kilosort':
         print('Generating spike trains from KiloSort')
         exdirio = neo.io.ExdirIO(exdir_path)
@@ -264,13 +264,13 @@ def generate_spike_trains(exdir_path, openephys_rec, source='klusta'):
                 )
                 unit.spiketrains.append(
                     neo.SpikeTrain(
-                        times = (spt[spc==id].astype(float) / openephys_file.sample_rate).simplified,
-                        t_stop = openephys_file.duration,
+                        times = (spt[spc==id].astype(float) / openephys_rec.sample_rate).simplified,
+                        t_stop = openephys_rec.duration,
                     )
                 )
                 chx.units.append(unit)
             exdirio.write_channelindex(chx, start_time=0 * pq.s,
-                                       stop_time=openephys_file.duration)
+                                       stop_time=openephys_rec.duration)
             break
     else:
         raise ValueError(source + ' not supported')
